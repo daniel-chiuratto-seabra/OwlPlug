@@ -18,12 +18,10 @@
  
 package com.owlplug.auth.model;
 
-import com.google.api.client.auth.oauth2.StoredCredential;
+import java.time.Instant;
 import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
-
-import java.time.Instant;
 
 /**
  * Owlplug JPA entity to handle google credentials.
