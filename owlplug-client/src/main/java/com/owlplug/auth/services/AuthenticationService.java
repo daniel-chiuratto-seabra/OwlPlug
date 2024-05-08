@@ -18,18 +18,14 @@
  
 package com.owlplug.auth.services;
 
-import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.client.util.store.DataStoreFactory;
 import com.google.api.services.oauth2.Oauth2;
-import com.google.api.services.oauth2.model.Userinfoplus;
 import com.owlplug.auth.JPADataStoreFactory;
 import com.owlplug.auth.components.OwlPlugCredentials;
 import com.owlplug.auth.dao.GoogleCredentialDAO;
@@ -41,14 +37,14 @@ import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.controllers.MainController;
 import com.owlplug.core.services.BaseService;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 /**
  * OAuth Authentication service. Authenticates users from known providers using
@@ -61,21 +57,25 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthenticationService extends BaseService {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
-
-  @Autowired
-  private OwlPlugCredentials owlPlugCredentials;
-  @Autowired
-  private GoogleCredentialDAO googleCredentialDAO;
-  @Autowired
-  private UserAccountDAO userAccountDAO;
-  @Autowired
-  private MainController mainController;
+  private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationService.class);
 
   private static final JsonFactory JSON_FACTORY = new JacksonFactory();
+
+  private final OwlPlugCredentials owlPlugCredentials;
+  private final GoogleCredentialDAO googleCredentialDAO;
+  private final UserAccountDAO userAccountDAO;
+  private final MainController mainController;
+
   private LocalServerReceiver receiver = null;
 
-  /**
+    public AuthenticationService(OwlPlugCredentials owlPlugCredentials, GoogleCredentialDAO googleCredentialDAO, UserAccountDAO userAccountDAO, MainController mainController) {
+        this.owlPlugCredentials = owlPlugCredentials;
+        this.googleCredentialDAO = googleCredentialDAO;
+        this.userAccountDAO = userAccountDAO;
+        this.mainController = mainController;
+    }
+
+    /**
    * Creates a new account by starting the Authentication flow.
    * 
    * @throws AuthenticationException if an error occurs during Authentication
@@ -83,29 +83,29 @@ public class AuthenticationService extends BaseService {
    */
   public void createAccountAndAuth() throws AuthenticationException {
 
-    String clientId = owlPlugCredentials.getGoogleAppId();
-    String clientSecret = owlPlugCredentials.getGoogleSecret();
-    ArrayList<String> scopes = new ArrayList<>();
+    var clientId = owlPlugCredentials.getGoogleAppId();
+    var clientSecret = owlPlugCredentials.getGoogleSecret();
+    var scopes = new ArrayList<String>();
     scopes.add("https://www.googleapis.com/auth/userinfo.profile");
 
     try {
-      NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-      DataStoreFactory dataStore = new JPADataStoreFactory(googleCredentialDAO);
-      GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(httpTransport, JSON_FACTORY, clientId,
-          clientSecret, scopes).setDataStoreFactory(dataStore).setAccessType("offline").setApprovalPrompt("force")
-              .build();
+      var httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+      var dataStoreFactory = new JPADataStoreFactory(googleCredentialDAO);
+      var googleAuthorizationCodeFlow = new GoogleAuthorizationCodeFlow.Builder(httpTransport, JSON_FACTORY, clientId,
+          clientSecret, scopes).setDataStoreFactory(dataStoreFactory).setAccessType("offline").setApprovalPrompt("force").build();
 
-      UserAccount userAccount = new UserAccount();
+      final var userAccount = new UserAccount();
       userAccountDAO.save(userAccount);
 
       receiver = new LocalServerReceiver();
 
-      AuthorizationCodeInstalledApp authCodeAccess = new AuthorizationCodeInstalledApp(flow, receiver);
-      Credential credential = authCodeAccess.authorize(userAccount.getKey());
+      var authorizationCodeInstalledApp = new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, receiver);
+      var credential = authorizationCodeInstalledApp.authorize(userAccount.getKey());
 
-      Oauth2 oauth2 = new Oauth2.Builder(new NetHttpTransport(), new JacksonFactory(), credential)
+      var oauth2 = new Oauth2.Builder(new NetHttpTransport(), new JacksonFactory(), credential)
           .setApplicationName("OwlPlug").build();
-      Userinfoplus userinfo = oauth2.userinfo().get().execute();
+
+      var userinfo = oauth2.userinfo().get().execute();
 
       userAccount.setName(userinfo.getName());
       userAccount.setIconUrl(userinfo.getPicture());
@@ -115,8 +115,8 @@ public class AuthenticationService extends BaseService {
       userAccountDAO.save(userAccount);
       this.getPreferences().putLong(ApplicationDefaults.SELECTED_ACCOUNT_KEY, userAccount.getId());
 
-    } catch (GeneralSecurityException | IOException e) {
-      log.error("Error during authentication", e);
+    } catch (final GeneralSecurityException | IOException e) {
+      LOGGER.error("Error during authentication", e);
       throw new AuthenticationException(e);
     } finally {
       // Delete accounts without complete setup
@@ -126,30 +126,12 @@ public class AuthenticationService extends BaseService {
   }
 
   /**
-   * Retrieve Google Credentials from key.
-   * 
-   * @param key Google credential unique key
-   * @return
-   */
-  public GoogleCredential getGoogleCredential(String key) {
-
-    String clientId = owlPlugCredentials.getGoogleAppId();
-    String clientSecret = owlPlugCredentials.getGoogleSecret();
-
-    com.owlplug.auth.model.GoogleCredential gc = googleCredentialDAO.findByKey(key);
-
-    return new GoogleCredential.Builder().setTransport(new NetHttpTransport()).setJsonFactory(new JacksonFactory())
-        .setClientSecrets(clientId, clientSecret).build().setRefreshToken(gc.getRefreshToken());
-  }
-
-  /**
    * Deletes a user account.
    * 
    * @param userAccount user account to delete
    */
   @Transactional
   public void deleteAccount(UserAccount userAccount) {
-
     googleCredentialDAO.deleteByKey(userAccount.getKey());
     userAccountDAO.delete(userAccount);
     mainController.refreshAccounts();
@@ -183,7 +165,7 @@ public class AuthenticationService extends BaseService {
         receiver.stop();
       }
     } catch (IOException e) {
-      log.error("Error while stopping local authentication receiver", e);
+      LOGGER.error("Error while stopping local authentication receiver", e);
     }
   }
 

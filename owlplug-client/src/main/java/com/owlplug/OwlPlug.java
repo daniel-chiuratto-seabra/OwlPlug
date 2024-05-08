@@ -21,9 +21,7 @@ package com.owlplug;
 import com.owlplug.controls.OwlPlugControlsResources;
 import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.controllers.MainController;
-import java.beans.PropertyVetoException;
 import java.io.File;
-import java.time.Duration;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -50,6 +48,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.util.Assert;
+
+import java.net.URL;
+import java.time.Duration;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 
 @SpringBootApplication
 public class OwlPlug extends Application {
@@ -103,7 +108,7 @@ public class OwlPlug extends Application {
    * the {@link #init} method has returned
    */
   @Override
-  public void start(Stage primaryStage) throws Exception {
+  public void start(Stage primaryStage) {
     double width = 1050;
     double height = 800;
 
@@ -112,8 +117,13 @@ public class OwlPlug extends Application {
     metroTheme.setScene(scene);
     String owlplugControlsCss = OwlPlugControlsResources.load("/css/owlplug-controls.css").toExternalForm();
     metroTheme.getOverridingStylesheets().add(owlplugControlsCss);
-    String owlplugCss = OwlPlug.class.getResource("/owlplug.css").toExternalForm();
-    metroTheme.getOverridingStylesheets().add(owlplugCss);
+    URL owlplugCssUrl = OwlPlug.class.getResource("/owlplug.css");
+    if (owlplugCssUrl != null) {
+      String owlplugCss = owlplugCssUrl.toExternalForm();
+      metroTheme.getOverridingStylesheets().add(owlplugCss);
+    } else {
+      log.error("An error happened that owlplug.css file has not been found. The UI aesthetics may be compromised");
+    }
     primaryStage.getIcons().add(ApplicationDefaults.owlplugLogo);
     primaryStage.setTitle(ApplicationDefaults.APPLICATION_NAME);
 
@@ -131,9 +141,15 @@ public class OwlPlug extends Application {
 
   @Bean
   @DependsOn("workspaceDirectoryInitializer")
-  public DataSource datasource() throws PropertyVetoException {
+  public DataSource datasource() {
     final DriverManagerDataSource dataSource = new DriverManagerDataSource();
-    dataSource.setDriverClassName(environment.getProperty("spring.datasource.driver-class-name"));
+    String driverClassName = environment.getProperty("spring.datasource.driver-class-name");
+    if (isNotBlank(driverClassName)) {
+      dataSource.setDriverClassName(driverClassName);
+    } else {
+      log.error("spring.datasource.driver-class-name is not set");
+      Assert.hasText(driverClassName, "Property 'driverClassName' must not be empty");
+    }
     dataSource.setUrl(environment.getProperty("spring.datasource.url"));
     dataSource.setUsername(environment.getProperty("spring.datasource.username"));
     dataSource.setPassword(environment.getProperty("spring.datasource.password"));
@@ -165,7 +181,7 @@ public class OwlPlug extends Application {
    * operation should be operated here.
    */
   @Override
-  public void stop() throws Exception {
+  public void stop() {
     context.close();
   }
 
