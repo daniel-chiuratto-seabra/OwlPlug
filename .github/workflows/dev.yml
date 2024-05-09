@@ -14,6 +14,8 @@ jobs:
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
+    - name: Echo GitHub Head Ref
+      run: echo "${{ github.ref_name }}"
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -31,10 +33,19 @@ jobs:
     - name: Update version
       if: github.event.pull_request.merged && github.head_ref == 'dev'
       run: |
-        MVN_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' \
-          --non-recursive exec:exec)
+        # The Maven command that outputs the current project version
+        MVN_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+        
+        # Split the version number into parts. Assuming version is like `major.minor.patch`
+        IFS='.' read -ra VERSION_PARTS <<< "$MVN_VERSION"
 
-        NEW_VERSION=${MVN_VERSION%-SNAPSHOT}-SNAPSHOT
+        # Increase the patch number
+        let patch=${VERSION_PARTS[2]}+1
+        
+        # Combine back into full version string and append '-SNAPSHOT'
+        NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$patch-SNAPSHOT"
+        
+        # Set the Maven version
         mvn versions:set -DnewVersion=$NEW_VERSION
 
     - name: Commit and push
