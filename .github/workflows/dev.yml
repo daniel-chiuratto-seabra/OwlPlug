@@ -14,7 +14,7 @@ jobs:
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-    - name: Echo GitHub Head Ref
+    - name: GitHub Branch Name
       run: echo "${{ github.ref_name }}"
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
     - name: Run Test
       run: mvn test
     - name: Update version
-      if: github.event.pull_request.merged && github.head_ref == 'dev'
+      if: github.event.pull_request.merged && github.ref_name == 'dev'
       run: |
         # The Maven command that outputs the current project version
         MVN_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
@@ -49,7 +49,7 @@ jobs:
         mvn versions:set -DnewVersion=$NEW_VERSION
 
     - name: Commit and push
-      if: github.event.pull_request.merged && github.head_ref == 'dev'
+      if: github.event.pull_request.merged && github.ref_name == 'dev'
       run: |
         git add .
 
