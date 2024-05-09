@@ -14,7 +14,7 @@ jobs:
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-    - name: Echo GitHub Head Ref
+    - name: GitHub Branch Name
       run: echo "${{ github.ref_name }}"
     - name: Checkout repository
       uses: actions/checkout@v4
