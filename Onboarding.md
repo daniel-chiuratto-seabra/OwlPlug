@@ -49,7 +49,7 @@ The build process has two main steps: compiling the native code (C++) and compil
 
 1.  **Clone the Repository:**
     ```sh
-    git clone --recurse-submodules https://github.com/DropSnorz/OwlPlug.git
+    git clone --recurse-submodules https://github.com/daniel-chiuratto-seabra/OwlPlug
     cd OwlPlug
     ```
     *(The `--recurse-submodules` is important to download the JUCE dependencies).*\
