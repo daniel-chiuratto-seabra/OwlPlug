@@ -16,6 +16,11 @@
 [![Discord](https://img.shields.io/badge/chat-on%20discord-%237289DA.svg)](https://discord.gg/nEdHAMB)
 [![Donate](https://img.shields.io/badge/donate-%E2%99%A5-%23253b80)](https://www.paypal.com/donate?hosted_button_id=7MJGDTQXAPJ22)
 
+# Information about this project
+
+This project is a fork of the [Official OwlPlug Repository](https://github.com/DropSnorz/OwlPlug). It was created to explore the codebase, contribute new ideas, and specifically address the macOS build process, which was not functional in the original repository. This fork successfully builds an installable package and runs on macOS Sequoia.
+
+This fork also includes an [Onboarding](Onboarding.md) guide that details the project's technical aspects and build instructions. While some details are still being added, any encountered errors should guide you toward the correct solutions. The remaining information will be provided soon.
 
 # Overview
 
@@ -147,4 +152,3 @@ mvn spring-boot:run
 # License
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FDropSnorz%2FOwlPlug.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FDropSnorz%2FOwlPlug?ref=badge_large)
-
