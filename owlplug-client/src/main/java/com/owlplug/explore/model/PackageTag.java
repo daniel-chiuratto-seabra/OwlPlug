@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.model;
 
 import jakarta.persistence.Entity;
@@ -23,51 +23,39 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
+@NoArgsConstructor
 public class PackageTag {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
-  private String name;
-  @ManyToOne
-  private RemotePackage remotePackage;
+    @Id
+    @Getter
+    @Setter
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-  public PackageTag() {
+    @Getter
+    @Setter
+    private String name;
 
-  }
+    @Getter
+    @Setter
+    @ManyToOne
+    private RemotePackage remotePackage;
 
-  public PackageTag(String name) {
-    super();
-    this.name = name;
-  }
+    /**
+     * Creates a PackageTag for a given package.
+     *
+     * @param name          - name of the tag
+     * @param remotePackage - related package
+     */
+    public PackageTag(String name, RemotePackage remotePackage) {
+        super();
+        this.name = name;
+        this.remotePackage = remotePackage;
+    }
 
-  /**
-   * Creates a PackageTag for a given package.
-   * 
-   * @param name    - name of the tag
-   * @param remotePackage - related package
-   */
-  public PackageTag(String name, RemotePackage remotePackage) {
-    super();
-    this.name = name;
-    this.remotePackage = remotePackage;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public RemotePackage getRemotePackage() {
-    return remotePackage;
-  }
-
-  public void setRemotePackage(RemotePackage remotePackage) {
-    this.remotePackage = remotePackage;
-  }
 }

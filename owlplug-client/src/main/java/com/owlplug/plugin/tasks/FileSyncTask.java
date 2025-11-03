@@ -24,16 +24,16 @@ import com.owlplug.core.tasks.TaskResult;
 import com.owlplug.core.utils.FileUtils;
 import com.owlplug.plugin.model.FileStat;
 import com.owlplug.plugin.repositories.FileStatRepository;
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
+
 public class FileSyncTask extends AbstractTask {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileSyncTask.class);
 
   private final FileStatRepository fileStatRepository;
 
@@ -57,20 +57,20 @@ public class FileSyncTask extends AbstractTask {
 
     this.updateProgress(1, 3);
 
-    log.info("Starting file sync task on {} directories", directories.size());
+    LOGGER.info("Starting file sync task on {} directories", directories.size());
 
     long length = 0;
     for (String directoryPath : directories) {
       try {
-        log.info("Syncing file stats on directory {}", directoryPath);
+        LOGGER.info("Syncing file stats on directory {}", directoryPath);
         File directory = new File(directoryPath);
         if (directory.exists() && directory.isDirectory()) {
           length = extractFolderSize(directory, null);
-          log.info("Completed file stat sync on directory {}, computed length: {}", directoryPath, length);
+          LOGGER.info("Completed file stat sync on directory {}, computed length: {}", directoryPath, length);
         }
 
       } catch (Exception e) {
-        log.error("An error occurred during file sync task execution", e);
+        LOGGER.error("An error occurred during file sync task execution", e);
         throw new TaskException(e);
       }
     }

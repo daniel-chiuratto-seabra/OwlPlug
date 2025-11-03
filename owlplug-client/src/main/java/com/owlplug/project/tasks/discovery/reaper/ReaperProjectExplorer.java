@@ -20,7 +20,6 @@ package com.owlplug.project.tasks.discovery.reaper;
 
 import com.owlplug.core.utils.FileUtils;
 import com.owlplug.parsers.reaper.PluginNodeListener;
-import com.owlplug.parsers.reaper.ReaperPlugin;
 import com.owlplug.parsers.reaper.ReaperProjectLexer;
 import com.owlplug.parsers.reaper.ReaperProjectParser;
 import com.owlplug.plugin.model.PluginFormat;
@@ -29,74 +28,71 @@ import com.owlplug.project.model.DawPlugin;
 import com.owlplug.project.model.DawProject;
 import com.owlplug.project.tasks.discovery.ProjectExplorer;
 import com.owlplug.project.tasks.discovery.ProjectExplorerException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.util.Date;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.apache.commons.io.FilenameUtils;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Date;
+
 public class ReaperProjectExplorer implements ProjectExplorer {
 
-  @Override
-  public boolean canExploreFile(File file) {
-    return file.isFile() && file.getAbsolutePath().endsWith(".rpp");
-  }
-
-
-  @Override
-  public DawProject explore(File file) throws ProjectExplorerException {
-
-    DawProject project = new DawProject();
-    project.setApplication(DawApplication.REAPER);
-    project.setAppFullName("Reaper");
-    project.setPath(FileUtils.convertPath(file.getAbsolutePath()));
-    project.setName(FilenameUtils.removeExtension(file.getName()));
-
-    try {
-
-      project.setLastModifiedAt(new Date(file.lastModified()));
-      BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-      FileTime fileTime = attr.creationTime();
-      project.setCreatedAt(Date.from(fileTime.toInstant()));
-
-      InputStream is = new FileInputStream(file);
-
-      ReaperProjectLexer lexer = new ReaperProjectLexer(CharStreams.fromStream(is));
-      CommonTokenStream tokens = new CommonTokenStream(lexer);
-      ReaperProjectParser parser = new ReaperProjectParser(tokens);
-      ParseTree pt = parser.node();
-
-      ParseTreeWalker walker = new ParseTreeWalker();
-      PluginNodeListener pluginListener = new PluginNodeListener();
-      walker.walk(pluginListener, pt);
-
-      for (ReaperPlugin reaperPlugin : pluginListener.getReaperPlugins()) {
-        DawPlugin dawPlugin = new DawPlugin();
-        dawPlugin.setProject(project);
-        dawPlugin.setName(FilenameUtils.removeExtension(reaperPlugin.getFilename()));
-        dawPlugin.setPath(reaperPlugin.getFilename());
-
-        if (reaperPlugin.getName().contains("VST3")) {
-          dawPlugin.setFormat(PluginFormat.VST3);
-        } else {
-          dawPlugin.setFormat(PluginFormat.VST2);
-        }
-        project.getPlugins().add(dawPlugin);
-      }
-
-      return project;
-
-    } catch (IOException e) {
-      throw new ProjectExplorerException("Error while opening Reaper project " + file.getAbsolutePath(), e);
+    @Override
+    public boolean canExploreFile(final File file) {
+        return file.isFile() && file.getAbsolutePath().endsWith(".rpp");
     }
 
-  }
+
+    @Override
+    public DawProject explore(final File file) throws ProjectExplorerException {
+
+        final var dawProject = new DawProject();
+        dawProject.setApplication(DawApplication.REAPER);
+        dawProject.setAppFullName("Reaper");
+        dawProject.setPath(FileUtils.convertPath(file.getAbsolutePath()));
+        dawProject.setName(FilenameUtils.removeExtension(file.getName()));
+
+        try {
+            dawProject.setLastModifiedAt(new Date(file.lastModified()));
+            final var basicFileAttributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+
+            final var fileTime = basicFileAttributes.creationTime();
+            dawProject.setCreatedAt(Date.from(fileTime.toInstant()));
+
+            final var fileInputStream = new FileInputStream(file);
+
+            final var reaperProjectLexer = new ReaperProjectLexer(CharStreams.fromStream(fileInputStream));
+            final var commonTokenStream = new CommonTokenStream(reaperProjectLexer);
+            final var reaperProjectParser = new ReaperProjectParser(commonTokenStream);
+            final var nodeContext = reaperProjectParser.node();
+
+            final var parseTreeWalker = new ParseTreeWalker();
+            final var pluginNodeListener = new PluginNodeListener();
+            parseTreeWalker.walk(pluginNodeListener, nodeContext);
+
+            pluginNodeListener.getReaperPlugins().forEach(reaperPlugin -> {
+                final var dawPlugin = new DawPlugin();
+                dawPlugin.setProject(dawProject);
+                dawPlugin.setName(FilenameUtils.removeExtension(reaperPlugin.getFilename()));
+                dawPlugin.setPath(reaperPlugin.getFilename());
+
+                if (reaperPlugin.getName().contains("VST3")) {
+                    dawPlugin.setFormat(PluginFormat.VST3);
+                } else {
+                    dawPlugin.setFormat(PluginFormat.VST2);
+                }
+                dawProject.getPlugins().add(dawPlugin);
+            });
+
+            return dawProject;
+
+        } catch (final IOException ioException) {
+            throw new ProjectExplorerException("Error while opening Reaper project %s".formatted(file.getAbsolutePath()), ioException);
+        }
+    }
 }

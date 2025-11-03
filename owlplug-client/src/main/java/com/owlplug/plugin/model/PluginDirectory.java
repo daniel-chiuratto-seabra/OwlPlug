@@ -20,7 +20,7 @@ package com.owlplug.plugin.model;
 
 import java.util.List;
 
-public class PluginDirectory implements IDirectory {
+public class PluginDirectory implements Directory {
 
   protected String name;
   protected String displayName;

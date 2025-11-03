@@ -15,13 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.tasks;
 
 import java.util.EventListener;
 
 @FunctionalInterface
 public interface SimpleEventListener extends EventListener {
-  void onAction();
-
+    void onAction();
 }

@@ -15,11 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.auth.ui;
 
+/**
+ * Represents a generic item that can be displayed in an account-related UI component,
+ * typically a list or a menu. This interface provides a common contract for objects
+ * that need to expose a unique identifier.
+ */
 public interface AccountItem {
 
-  public Long getId();
+    /**
+     * Returns the unique identifier of the account item.
+     *
+     * @return The unique ID of the account item.
+     */
+    Long getId();
 
 }

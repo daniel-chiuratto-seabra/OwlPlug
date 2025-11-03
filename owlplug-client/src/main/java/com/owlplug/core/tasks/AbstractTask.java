@@ -15,116 +15,98 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.tasks;
 
-import java.time.Duration;
-import java.time.Instant;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
+
+@NoArgsConstructor
 public abstract class AbstractTask extends Task<TaskResult> {
-  
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  private String name = "OwlPlug task";
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTask.class);
 
-  private Instant taskStarted;
+    @Getter
+    @Setter
+    private String name = "OwlPlug task";
 
-  private Instant taskCompleted;
+    @Getter
+    private Instant taskStarted;
 
-  private double maxProgress = 1;
-  private double committedProgress = 0;
+    @Getter
+    private Instant taskCompleted;
 
-  public AbstractTask() {
-  }
+    private double maxProgress = 1;
+    private double committedProgress = 0;
 
-  public AbstractTask(String name) {
-    this.name = name;
-  }
-
-  @Override
-  public TaskResult call() throws Exception {
-    taskStarted = Instant.now();
-    TaskResult result = start();
-    taskCompleted = Instant.now();
-
-    Duration elapsed = Duration.between(taskStarted, taskCompleted);
-    log.info("Task {} completed in {}m{}s.", this.name, elapsed.toMinutes(), elapsed.toSecondsPart());
-    return result;
-  }
-
-  protected abstract TaskResult start() throws Exception;
-
-
-  protected void commitProgress(double progress) {
-    committedProgress = committedProgress + progress;
-    this.updateProgress(committedProgress, getMaxProgress());
-
-  }
-
-  protected double getCommittedProgress() {
-    return committedProgress;
-  }
-
-  protected void setCommittedProgress(double committedProgress) {
-    this.committedProgress = committedProgress;
-
-  }
-
-  protected double getMaxProgress() {
-    return maxProgress;
-  }
-
-  protected void setMaxProgress(double maxProgress) {
-    this.maxProgress = maxProgress;
-  }
-
-  protected void computeTotalProgress(double progress) {
-    updateProgress(committedProgress + progress, maxProgress);
-  }
-
-  protected TaskResult success() {
-    return new TaskResult();
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public Instant getTaskStarted() {
-    return taskStarted;
-  }
-
-  public Instant getTaskCompleted() {
-    return taskCompleted;
-  }
-
-  @Override
-  protected void updateMessage(String message) {
-    log.trace("Task" + name + " status update [" + message + "]");
-    super.updateMessage(message);
-  }
-
-  @Override
-  public String toString() {
-    String prefix = "W";
-    if (this.isRunning()) {
-      prefix = "R";
+    public AbstractTask(final String name) {
+        this.name = name;
     }
-    if (this.isDone()) {
-      prefix = "D";
-    }
-    if (this.getState().equals(Worker.State.FAILED)) {
-      prefix = "F";
-    }
-    return prefix + " - " + this.getName();
 
-  }
+    @Override
+    public TaskResult call() throws Exception {
+        taskStarted = Instant.now();
+        TaskResult result = start();
+        taskCompleted = Instant.now();
+
+        Duration elapsed = Duration.between(taskStarted, taskCompleted);
+        LOGGER.info("Task {} completed in {}m{}s.", name, elapsed.toMinutes(), elapsed.toSecondsPart());
+        return result;
+    }
+
+    protected abstract TaskResult start() throws Exception;
+
+    protected void commitProgress(double progress) {
+        committedProgress += progress;
+        updateProgress(committedProgress, getMaxProgress());
+    }
+
+    protected double getCommittedProgress() {
+        return committedProgress;
+    }
+
+    protected double getMaxProgress() {
+        return maxProgress;
+    }
+
+    protected void setMaxProgress(double maxProgress) {
+        this.maxProgress = maxProgress;
+    }
+
+    protected void computeTotalProgress(double progress) {
+        updateProgress(committedProgress + progress, maxProgress);
+    }
+
+    protected TaskResult success() {
+        return new TaskResult();
+    }
+
+    @Override
+    protected void updateMessage(String message) {
+        LOGGER.trace("Task {} status update [{}]", name, message);
+        super.updateMessage(message);
+    }
+
+    @Override
+    public String toString() {
+        String prefix = "W";
+        if (isRunning()) {
+            prefix = "R";
+        }
+        if (isDone()) {
+            prefix = "D";
+        }
+        if (getState().equals(Worker.State.FAILED)) {
+            prefix = "F";
+        }
+        return "%s - %s".formatted(prefix, getName());
+    }
 }

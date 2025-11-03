@@ -20,22 +20,14 @@ package com.owlplug.core.services;
 
 import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.components.ApplicationPreferences;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
+@Getter
+@AllArgsConstructor
 public class BaseService {
-  
-  @Autowired
-  private ApplicationDefaults applicationDefaults;
-  @Autowired
-  private ApplicationPreferences preferences;
-  
-  
-  public ApplicationDefaults getApplicationDefaults() {
-    return applicationDefaults;
-  }
-  
-  public ApplicationPreferences getPreferences() {
-    return preferences;
-  }
+
+    private final ApplicationDefaults applicationDefaults;
+    private final ApplicationPreferences applicationPreferences;
 
 }

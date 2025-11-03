@@ -24,35 +24,29 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
 import javafx.util.Callback;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class PluginComponentCellFactory implements Callback<ListView<PluginComponent>, ListCell<PluginComponent>> {
 
-  private ApplicationDefaults applicationDefaults;
+    private final ApplicationDefaults applicationDefaults;
 
-  public PluginComponentCellFactory(ApplicationDefaults applicationDefaults) {
-
-    this.applicationDefaults = applicationDefaults;
-
-  }
-
-  @Override
-  public ListCell<PluginComponent> call(ListView<PluginComponent> arg0) {
-
-    return new ListCell<>() {
-      @Override
-      public void updateItem(PluginComponent plugin, boolean empty) {
-        super.updateItem(plugin, empty);
-        if (empty) {
-          setText(null);
-          setGraphic(null);
-        } else {
-          ImageView imageView = new ImageView();
-          imageView.setImage(applicationDefaults.pluginComponentImage);
-          setText(plugin.getName());
-          setGraphic(imageView);
-        }
-      }
-    };
-  }
+    @Override
+    public ListCell<PluginComponent> call(final ListView<PluginComponent> pluginComponentListView) {
+        return new ListCell<>() {
+            @Override
+            public void updateItem(PluginComponent plugin, boolean empty) {
+                super.updateItem(plugin, empty);
+                if (empty) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    final var imageView = new ImageView();
+                    imageView.setImage(applicationDefaults.pluginComponentImage);
+                    setText(plugin.getName());
+                    setGraphic(imageView);
+                }
+            }
+        };
+    }
 }
-

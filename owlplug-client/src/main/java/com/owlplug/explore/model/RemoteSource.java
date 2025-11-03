@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.model;
 
 import jakarta.persistence.Entity;
@@ -25,69 +25,34 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
 public class RemoteSource {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
-  private String url;
-  private String name;
-  private String displayUrl;
-  private boolean enabled = true;
-  @Enumerated(EnumType.STRING)
-  private SourceType type;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-  @OneToMany(mappedBy = "remoteSource", orphanRemoval = true)
-  private List<RemotePackage> packages;
+    private String url;
 
-  public String getUrl() {
-    return url;
-  }
+    private String name;
 
-  public void setUrl(String url) {
-    this.url = url;
-  }
+    private String displayUrl;
 
-  public Long getId() {
-    return id;
-  }
+    private boolean enabled = true;
 
-  public String getName() {
-    return name;
-  }
+    @Enumerated(EnumType.STRING)
+    private SourceType type;
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    @OneToMany(mappedBy = "remoteSource", orphanRemoval = true)
+    private List<RemotePackage> packages;
 
-  public String getDisplayUrl() {
-    return displayUrl;
-  }
-
-  public void setDisplayUrl(String displayUrl) {
-    this.displayUrl = displayUrl;
-  }
-
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  public List<RemotePackage> getPackages() {
-    return packages;
-  }
-
-  public SourceType getType() {
-    return type;
-  }
-
-  public void setType(SourceType type) {
-    this.type = type;
-  }
 }

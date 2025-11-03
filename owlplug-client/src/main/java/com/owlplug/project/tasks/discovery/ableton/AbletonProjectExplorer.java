@@ -20,30 +20,10 @@ package com.owlplug.project.tasks.discovery.ableton;
 
 import com.owlplug.core.utils.FileUtils;
 import com.owlplug.project.model.DawApplication;
-import com.owlplug.project.model.DawPlugin;
 import com.owlplug.project.model.DawProject;
 import com.owlplug.project.tasks.discovery.ProjectExplorer;
 import com.owlplug.project.tasks.discovery.ProjectExplorerException;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.util.Date;
-import java.util.List;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 import org.apache.commons.compress.compressors.CompressorException;
-import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -52,74 +32,91 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Date;
+
 public class AbletonProjectExplorer implements ProjectExplorer {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbletonProjectExplorer.class);
 
-  public boolean canExploreFile(File file) {
-    return file.isFile() && file.getAbsolutePath().endsWith(".als");
-  }
-
-  public DawProject explore(File file) throws ProjectExplorerException {
-
-    if (!canExploreFile(file)) {
-      return null;
+    public boolean canExploreFile(File file) {
+        return file.isFile() && file.getAbsolutePath().endsWith(".als");
     }
 
-    log.debug("Starting exploring file {}", file.getAbsoluteFile());
+    public DawProject explore(final File file) throws ProjectExplorerException {
 
-    try {
-      Document xmlDocument = createDocument(file);
-      XPath xpath = XPathFactory.newInstance().newXPath();
-      DawProject project = new DawProject();
-      project.setApplication(DawApplication.ABLETON);
-      project.setPath(FileUtils.convertPath(file.getAbsolutePath()));
-      project.setName(FilenameUtils.removeExtension(file.getName()));
-      NodeList abletonNode = (NodeList) xpath.compile("/Ableton").evaluate(xmlDocument, XPathConstants.NODESET);
-      project.setAppFullName(abletonNode.item(0).getAttributes().getNamedItem("Creator").getNodeValue());
-      project.setFormatVersion(abletonNode.item(0).getAttributes().getNamedItem("MajorVersion").getNodeValue());
+        if (!canExploreFile(file)) {
+            return null;
+        }
 
-      project.setLastModifiedAt(new Date(file.lastModified()));
-      BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-      FileTime fileTime = attr.creationTime();
-      project.setCreatedAt(Date.from(fileTime.toInstant()));
+        LOGGER.debug("Starting exploring file {}", file.getAbsoluteFile());
 
-      AbletonSchema5PluginCollector collector = new AbletonSchema5PluginCollector(xmlDocument);
-      List<DawPlugin> plugins = collector.collectPlugins();
+        try {
+            final var xmlDocument = createDocument(file);
+            final var xpath = XPathFactory.newInstance().newXPath();
 
-      for (DawPlugin plugin : plugins) {
-        plugin.setProject(project);
-        project.getPlugins().add(plugin);
-      }
+            final var dawProject = new DawProject();
+            dawProject.setApplication(DawApplication.ABLETON);
+            dawProject.setPath(FileUtils.convertPath(file.getAbsolutePath()));
+            dawProject.setName(FilenameUtils.removeExtension(file.getName()));
 
-      return project;
+            final var abletonNode = (NodeList) xpath.compile("/Ableton").evaluate(xmlDocument, XPathConstants.NODESET);
+            dawProject.setAppFullName(abletonNode.item(0).getAttributes().getNamedItem("Creator").getNodeValue());
+            dawProject.setFormatVersion(abletonNode.item(0).getAttributes().getNamedItem("MajorVersion").getNodeValue());
+            dawProject.setLastModifiedAt(new Date(file.lastModified()));
 
-    } catch (XPathExpressionException e) {
-      throw new ProjectExplorerException("Error while parsing project file " + file.getAbsolutePath(), e);
-    } catch (IOException e) {
-      throw new ProjectExplorerException("Error while reading file " + file.getAbsolutePath(), e);
+            final var basicFileAttributes = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+
+            final var fileTime = basicFileAttributes.creationTime();
+            dawProject.setCreatedAt(Date.from(fileTime.toInstant()));
+
+            final var abletonSchema5PluginCollector = new AbletonSchema5PluginCollector(xmlDocument);
+            final var dawPluginList = abletonSchema5PluginCollector.collectPlugins();
+
+            dawPluginList.forEach(dawPlugin -> {
+                dawPlugin.setProject(dawProject);
+                dawProject.getPlugins().add(dawPlugin);
+            });
+
+            return dawProject;
+
+        } catch (XPathExpressionException e) {
+            throw new ProjectExplorerException("Error while parsing project file " + file.getAbsolutePath(), e);
+        } catch (IOException e) {
+            throw new ProjectExplorerException("Error while reading file " + file.getAbsolutePath(), e);
+        }
+
     }
 
-  }
+    private Document createDocument(final File file) throws ProjectExplorerException {
 
-  private Document createDocument(File file) throws ProjectExplorerException {
+        try (final var inputStream = new FileInputStream(file);
+             final var bufferedInputStream = new BufferedInputStream(inputStream);
+             final var compressorInputStream = new CompressorStreamFactory().createCompressorInputStream(bufferedInputStream);
+             final var bgzi = new BufferedInputStream(compressorInputStream)) {
 
-    try (InputStream fi = new FileInputStream(file);
-         InputStream bi = new BufferedInputStream(fi);
-         CompressorInputStream gzi = new CompressorStreamFactory().createCompressorInputStream(bi);
-         InputStream bgzi = new BufferedInputStream(gzi)) {
+            final var documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            final var documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            return documentBuilder.parse(bgzi);
 
-      DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
-      DocumentBuilder builder = builderFactory.newDocumentBuilder();
-      return builder.parse(bgzi);
-
-    } catch (FileNotFoundException e) {
-      throw new ProjectExplorerException("Project file not found: " + file.getAbsolutePath(), e);
-    } catch (CompressorException e) {
-      throw new ProjectExplorerException("Error while uncompressing project file: " + file.getAbsolutePath(), e);
-    } catch (IOException | ParserConfigurationException | SAXException e) {
-      throw new ProjectExplorerException("Unexpected error while reading project file: {}", e);
+        } catch (FileNotFoundException e) {
+            throw new ProjectExplorerException("Project file not found: " + file.getAbsolutePath(), e);
+        } catch (CompressorException e) {
+            throw new ProjectExplorerException("Error while uncompressing project file: " + file.getAbsolutePath(), e);
+        } catch (IOException | ParserConfigurationException | SAXException e) {
+            throw new ProjectExplorerException("Unexpected error while reading project file: {}", e);
+        }
     }
-  }
 
 }

@@ -73,11 +73,19 @@ public class AutoCompletePopup<T> extends PopupControl {
     getStyleClass().add(DEFAULT_STYLE_CLASS);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected Skin<?> createDefaultSkin() {
     return new AutoCompletePopupSkin<T>(this);
   }
 
+  /**
+   * Shows the auto-complete popup.
+   *
+   * @param node The node to which the popup should be attached.
+   */
   public void show(Node node) {
     if (!isShowing()) {
       if (node.getScene() == null || node.getScene().getWindow() == null) {
@@ -92,65 +100,138 @@ public class AutoCompletePopup<T> extends PopupControl {
     }
   }
 
+  /**
+   * Returns the list of suggestions for the auto-complete popup.
+   *
+   * @return The list of suggestions.
+   */
   public ObservableList<T> getSuggestions() {
     return suggestions;
   }
 
+  /**
+   * Filters the suggestions in the auto-complete popup using the given predicate.
+   *
+   * @param predicate The predicate to use for filtering.
+   */
   public void filter(Predicate<T> predicate) {
     filteredData.setPredicate(predicate);
   }
 
+  /**
+   * Returns the filtered list of suggestions for the auto-complete popup.
+   *
+   * @return The filtered list of suggestions.
+   */
   public ObservableList<T> getFilteredSuggestions() {
     return filteredData;
   }
 
+  /**
+   * Returns the selection handler, which is called when a suggestion is selected.
+   *
+   * @return The selection handler.
+   */
   public EventHandler<AutoCompleteEvent<T>> getSelectionHandler() {
     return selectionHandler.get();
   }
 
+  /**
+   * Sets the selection handler.
+   *
+   * @param selectionHandler The new selection handler.
+   */
   public void setSelectionHandler(EventHandler<AutoCompleteEvent<T>> selectionHandler) {
     this.selectionHandler.set(selectionHandler);
   }
 
+  /**
+   * Returns the property for the suggestions cell factory.
+   *
+   * @return The suggestions cell factory property.
+   */
   public final ObjectProperty<Callback<ListView<T>, ListCell<T>>> suggestionsCellFactoryProperty() {
     return this.suggestionsCellFactory;
   }
 
 
+  /**
+   * Returns the suggestions cell factory.
+   *
+   * @return The suggestions cell factory.
+   */
   public final Callback<ListView<T>, ListCell<T>> getSuggestionsCellFactory() {
     return this.suggestionsCellFactoryProperty().get();
   }
 
 
+  /**
+   * Sets the suggestions cell factory.
+   *
+   * @param suggestionsCellFactory The new suggestions cell factory.
+   */
   public final void setSuggestionsCellFactory(
           final Callback<ListView<T>, ListCell<T>> suggestionsCellFactory) {
     this.suggestionsCellFactoryProperty().set(suggestionsCellFactory);
   }
 
+  /**
+   * Sets the maximum number of cells to be shown in the popup.
+   *
+   * @param value The new cell limit.
+   */
   public final void setCellLimit(int value) {
     cellLimitProperty().set(value);
   }
 
+  /**
+   * Returns the maximum number of cells to be shown in the popup.
+   *
+   * @return The cell limit.
+   */
   public final int getCellLimit() {
     return cellLimitProperty().get();
   }
 
+  /**
+   * Returns the property for the maximum number of cells to be shown in the popup.
+   *
+   * @return The cell limit property.
+   */
   public final IntegerProperty cellLimitProperty() {
     return cellLimit;
   }
 
+  /**
+   * Sets the fixed cell size for the cells in the popup.
+   *
+   * @param value The new fixed cell size.
+   */
   public final void setFixedCellSize(double value) {
     fixedCellSizeProperty().set(value);
   }
 
+  /**
+   * Returns the fixed cell size for the cells in the popup.
+   *
+   * @return The fixed cell size.
+   */
   public final double getFixedCellSize() {
     return fixedCellSizeProperty().get();
   }
 
+  /**
+   * Returns the property for the fixed cell size.
+   *
+   * @return The fixed cell size property.
+   */
   public final DoubleProperty fixedCellSizeProperty() {
     return fixedCellSize;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
     return getClassCssMetaData();

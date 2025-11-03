@@ -1,0 +1,69 @@
+#OwlPlug
+owlplug:
+  version: @project.version@
+  workspace:
+    min-version: 1.29.0
+  hub:
+    url: https://hub.owlplug.com
+    updateDownloadUrl: https://github.com/DropSnorz/OwlPlug/releases
+  github:
+    issues:
+      url: https://github.com/DropSnorz/OwlPlug/issues
+    wiki:
+      url: https://github.com/DropSnorz/OwlPlug/wiki
+  roadmap:
+    url: https://owlplug.com/roadmap
+  about:
+    url: https://owlplug.com/about
+  donate:
+    url: https://www.paypal.com/donate?hosted_button_id=7MJGDTQXAPJ22
+  telemetry:
+    code: 1ef50688f6f98ec583f1aa2170874320
+  registry:
+    url: https://registry.owlplug.com/registry.min.json
+
+openaudio:
+  registry:
+    url: https://open-audio-stack.github.io/open-audio-stack-registry
+
+# JavaFX
+javafx:
+  # This property defines the preloader to be used. Following you have the default one. If this property
+  # is not present, then the hardcoded default one takes place
+  pre-loader: com.owlplug.OwlPlugPreloader
+
+# Spring circular references should be avoided
+# Most circular references are on the UI layer managed by the spring container.
+spring:
+  main:
+    allow-circular-references: true
+
+    # WebServer
+    # Disable webserver initialization on startup
+    web-application-type: none
+    web-environment: false
+
+  # H2
+  h2:
+    console:
+      enabled: true
+      path: /h2
+
+  # Datasource
+  datasource:
+    url: jdbc:h2:file:~/.owlplug/owlplug
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: com.owlplug.OwlPlugH2Dialect
+        auto_quote_keyword: true
+
+# Logger
+# Available levels are: TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF
+# logging.level.org.hibernate.SQL=DEBUG
+# logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE

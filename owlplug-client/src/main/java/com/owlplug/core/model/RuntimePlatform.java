@@ -15,84 +15,66 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.model;
+
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class RuntimePlatform {
 
-  private String tag;
-  private OperatingSystem operatingSystem;
-  private String arch;
+    @Getter
+    @Setter
+    private String tag;
 
-  private ArrayList<RuntimePlatform> compatiblePlatforms = new ArrayList<>();
+    @Getter
+    @Setter
+    private OperatingSystem operatingSystem;
 
-  private List<String> aliases = new ArrayList<>();
+    @Getter
+    @Setter
+    private String arch;
 
-  public RuntimePlatform(String tag, OperatingSystem operatingSystem, String arch) {
-    super();
-    this.tag = tag;
-    this.operatingSystem = operatingSystem;
-    this.arch = arch;
+    @Getter
+    @Setter
+    private Collection<RuntimePlatform> compatiblePlatforms = new ArrayList<>();
 
-    this.compatiblePlatforms.add(this);
-  }
+    private final List<String> aliases = new ArrayList<>();
 
-  public RuntimePlatform(String tag, OperatingSystem operatingSystem, String arch, String[] aliases) {
-    this(tag, operatingSystem, arch);
-    this.aliases.addAll(Arrays.stream(aliases).toList());
-  }
+    public RuntimePlatform(final String tag, final OperatingSystem operatingSystem, final String arch) {
+        super();
+        this.tag = tag;
+        this.operatingSystem = operatingSystem;
+        this.arch = arch;
 
-  public Set<String> getCompatiblePlatformsTags() {
-    Set<String> platforms = new HashSet<>();
-    platforms.add(this.operatingSystem.getCode());
-    platforms.addAll(aliases);
-    for (RuntimePlatform platform : compatiblePlatforms) {
-      platforms.add(platform.getTag());
+        this.compatiblePlatforms.add(this);
     }
-    return platforms;
-  }
 
-  public String getTag() {
-    return tag;
-  }
+    public RuntimePlatform(final String tag, final OperatingSystem operatingSystem, final String arch, final String[] aliases) {
+        this(tag, operatingSystem, arch);
+        this.aliases.addAll(Arrays.stream(aliases).toList());
+    }
 
-  public void setTag(String tag) {
-    this.tag = tag;
-  }
+    public Set<String> getCompatiblePlatformsTags() {
+        final var platforms = new HashSet<String>();
+        platforms.add(this.operatingSystem.getCode());
+        platforms.addAll(aliases);
+        for (final var runtimePlatform : compatiblePlatforms) {
+            platforms.add(runtimePlatform.getTag());
+        }
+        return platforms;
+    }
 
-  public OperatingSystem getOperatingSystem() {
-    return operatingSystem;
-  }
-
-  public void setOperatingSystem(OperatingSystem operatingSystem) {
-    this.operatingSystem = operatingSystem;
-  }
-
-  public String getArch() {
-    return arch;
-  }
-
-  public void setArch(String arch) {
-    this.arch = arch;
-  }
-
-  public ArrayList<RuntimePlatform> getCompatiblePlatforms() {
-    return compatiblePlatforms;
-  }
-
-  protected void setCompatiblePlatforms(ArrayList<RuntimePlatform> compatibleEnvironments) {
-    this.compatiblePlatforms = compatibleEnvironments;
-  }
-
-  @Override
-  public String toString() {
-    return "RuntimePlatform [tag=" + tag + ", operatingSystem=" + operatingSystem + ", arch=" + arch + "]";
-  }
+    @Override
+    public String toString() {
+        return "RuntimePlatform [tag=" + tag + ", operatingSystem=" + operatingSystem + ", arch=" + arch + "]";
+    }
 
 }

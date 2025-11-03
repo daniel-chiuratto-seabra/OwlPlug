@@ -18,124 +18,114 @@
 
 package com.owlplug.project.tasks.discovery.ableton;
 
-import com.owlplug.plugin.model.PluginFormat;
 import com.owlplug.core.utils.DomUtils;
+import com.owlplug.plugin.model.PluginFormat;
 import com.owlplug.project.model.DawPlugin;
-import java.util.ArrayList;
-import java.util.List;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.util.ArrayList;
+import java.util.List;
+
+@RequiredArgsConstructor
 public class AbletonSchema5PluginCollector {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbletonSchema5PluginCollector.class);
 
-  private Document document;
+    private final Document document;
 
-  public AbletonSchema5PluginCollector(Document document) {
-    this.document = document;
-  }
+    public List<DawPlugin> collectPlugins() {
 
-  public List<DawPlugin> collectPlugins() {
+        ArrayList<DawPlugin> plugins = new ArrayList<>();
 
-    ArrayList<DawPlugin> plugins = new ArrayList<>();
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        try {
+            final var vstPlugins = (NodeList) xpath.compile("//PluginDevice/PluginDesc/VstPluginInfo")
+                    .evaluate(document, XPathConstants.NODESET);
 
-    XPath xpath = XPathFactory.newInstance().newXPath();
-    try {
-      NodeList vstPlugins = (NodeList) xpath.compile("//PluginDevice/PluginDesc/VstPluginInfo")
-              .evaluate(document, XPathConstants.NODESET);
+            for (int i = 0; i < vstPlugins.getLength(); i++) {
+                final var node = vstPlugins.item(i);
+                if (node instanceof Element element) {
+                    plugins.add(readVstPluginElement(element));
+                }
+            }
 
-      for (int i = 0; i < vstPlugins.getLength();i++) {
-        Node node = vstPlugins.item(i);
-        if (node instanceof Element element) {
-          plugins.add(readVstPluginElement(element));
+            final var vst3Plugins = (NodeList) xpath.compile("//PluginDevice/PluginDesc/Vst3PluginInfo")
+                    .evaluate(document, XPathConstants.NODESET);
+            for (int i = 0; i < vst3Plugins.getLength(); i++) {
+                final var node = vst3Plugins.item(i);
+                if (node instanceof Element element) {
+                    plugins.add(readVst3PluginElement(element));
+                }
+            }
+
+            final var auPlugins = (NodeList) xpath.compile("//AuPluginDevice/PluginDesc/AuPluginInfo")
+                    .evaluate(document, XPathConstants.NODESET);
+            for (int i = 0; i < auPlugins.getLength(); i++) {
+                final var node = auPlugins.item(i);
+                if (node instanceof Element element) {
+                    plugins.add(readAuPluginElement(element));
+                }
+            }
+
+        } catch (final XPathExpressionException xPathExpressionException) {
+            LOGGER.error("Error extracting plugin", xPathExpressionException);
         }
-      }
 
-      NodeList vst3Plugins = (NodeList) xpath.compile("//PluginDevice/PluginDesc/Vst3PluginInfo")
-              .evaluate(document, XPathConstants.NODESET);
-      for (int i = 0; i < vst3Plugins.getLength();i++) {
-        Node node = vst3Plugins.item(i);
-        if (node instanceof Element element) {
-          plugins.add(readVst3PluginElement(element));
+        return plugins;
+    }
+
+    private DawPlugin readVstPluginElement(final Element pluginElement) {
+        final var dawPlugin = new DawPlugin();
+        dawPlugin.setFormat(PluginFormat.VST2);
+
+        final var fileNameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "FileName");
+        if (fileNameNodes.getLength() >= 1) {
+            dawPlugin.setFileName(fileNameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
         }
-      }
 
-      NodeList auPlugins = (NodeList) xpath.compile("//AuPluginDevice/PluginDesc/AuPluginInfo")
-              .evaluate(document, XPathConstants.NODESET);
-      for (int i = 0; i < auPlugins.getLength();i++) {
-        Node node = auPlugins.item(i);
-        if (node instanceof Element element) {
-          plugins.add(readAuPluginElement(element));
+        final var nameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "PlugName");
+        if (nameNodes.getLength() >= 1) {
+            dawPlugin.setName(nameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
         }
-      }
 
-    } catch (XPathExpressionException e) {
-      log.error("Error extracting plugin", e);
+        final var uniqueIdNode = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "UniqueId");
+        if (uniqueIdNode.getLength() >= 1) {
+            dawPlugin.setUid(uniqueIdNode.item(0).getAttributes().getNamedItem("Value").getNodeValue());
+        }
+
+        return dawPlugin;
     }
 
-    return plugins;
-  }
+    private DawPlugin readVst3PluginElement(final Element pluginElement) {
+        final var dawPlugin = new DawPlugin();
+        dawPlugin.setFormat(PluginFormat.VST3);
+        NodeList nameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "Name");
+        if (nameNodes.getLength() >= 1) {
+            dawPlugin.setName(nameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
 
-  private DawPlugin readVstPluginElement(Element pluginElement) {
-
-    DawPlugin plugin = new DawPlugin();
-    plugin.setFormat(PluginFormat.VST2);
-    NodeList fileNameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "FileName");
-    if (fileNameNodes.getLength() >= 1) {
-      plugin.setFileName(fileNameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
-
+        }
+        return dawPlugin;
     }
 
-    NodeList nameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "PlugName");
-    if (nameNodes.getLength() >= 1) {
-      plugin.setName(nameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
+    private DawPlugin readAuPluginElement(final Element pluginElement) {
+        final var dawPlugin = new DawPlugin();
+        dawPlugin.setFormat(PluginFormat.AU);
 
+        final var nameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "Name");
+        if (nameNodes.getLength() >= 1) {
+            dawPlugin.setName(nameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
+
+        }
+        return dawPlugin;
     }
-
-    NodeList uniqueIdNode = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "UniqueId");
-    if (uniqueIdNode.getLength() >= 1) {
-      plugin.setUid(uniqueIdNode.item(0).getAttributes().getNamedItem("Value").getNodeValue());
-
-    }
-
-    return plugin;
-  }
-
-  private DawPlugin readVst3PluginElement(Element pluginElement) {
-
-    DawPlugin plugin = new DawPlugin();
-    plugin.setFormat(PluginFormat.VST3);
-    NodeList nameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "Name");
-    if (nameNodes.getLength() >= 1) {
-      plugin.setName(nameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
-
-    }
-
-    return plugin;
-  }
-
-  private DawPlugin readAuPluginElement(Element pluginElement) {
-
-    DawPlugin plugin = new DawPlugin();
-    plugin.setFormat(PluginFormat.AU);
-    NodeList nameNodes = DomUtils.getDirectDescendantElementsByTagName(pluginElement, "Name");
-    if (nameNodes.getLength() >= 1) {
-      plugin.setName(nameNodes.item(0).getAttributes().getNamedItem("Value").getNodeValue());
-
-    }
-
-    return plugin;
-  }
-
-
 
 }

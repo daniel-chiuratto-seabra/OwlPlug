@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class PluginJsonSerializer {
 
-  private static final Logger log = LoggerFactory.getLogger(PluginJsonSerializer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PluginJsonSerializer.class);
 
   public String serialize(Iterable<Plugin> plugins) {
 
@@ -36,7 +36,7 @@ public class PluginJsonSerializer {
     try {
       return objectMapper.writeValueAsString(plugins);
     } catch (JsonProcessingException e) {
-      log.error("Error while creating json object",e);
+      LOGGER.error("Error while creating json object",e);
       return null;
     }
 

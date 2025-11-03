@@ -23,15 +23,16 @@ import com.owlplug.core.tasks.TaskException;
 import com.owlplug.core.tasks.TaskResult;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.repositories.PluginRepository;
-import java.io.File;
-import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+
 public class PluginRemoveTask extends AbstractTask {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  private static final Logger LOGGER = LoggerFactory.getLogger(PluginRemoveTask.class);
 
   protected Plugin plugin;
   protected PluginRepository pluginRepository;
@@ -57,7 +58,7 @@ public class PluginRemoveTask extends AbstractTask {
         FileUtils.deleteDirectory(pluginFile);
         fileDeleteSuccess = true;
       } catch (IOException e) {
-        log.error("Plugin File can't be removed: " + pluginFile.getPath(), e);
+        LOGGER.error("Plugin File can't be removed: " + pluginFile.getPath(), e);
       }
     } else {
       fileDeleteSuccess = pluginFile.delete();

@@ -15,20 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.model;
 
+import lombok.Getter;
+import lombok.ToString;
+
+@Getter
+@ToString
 public enum OperatingSystem {
-  WIN("win"), MAC("mac"), LINUX("linux"), UNKNOWN("unknown");
+    WIN("win"),
+    MAC("mac"),
+    LINUX("linux"),
+    UNKNOWN("unknown");
 
-  private final String code;
+    private final String code;
 
-  OperatingSystem(String code) {
-    this.code = code;
-  }
-
-  public String getCode() {
-    return code;
-  }
+    OperatingSystem(String code) {
+        this.code = code;
+    }
 
 }

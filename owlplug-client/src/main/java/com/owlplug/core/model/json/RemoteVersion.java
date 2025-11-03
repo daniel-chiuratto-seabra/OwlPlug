@@ -15,16 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.model.json;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RemoteVersion {
-  public String version;
-  
-  public RemoteVersion() {
-    
-  }
+    public String version;
 }

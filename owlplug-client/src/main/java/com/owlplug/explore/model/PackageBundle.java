@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.model;
 
 import com.owlplug.plugin.model.PluginFormat;
@@ -28,123 +28,66 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
 public class PackageBundle {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
-  @Deprecated
-  private String name;
-  private String downloadUrl;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-  private String downloadSha256;
-  @Deprecated
-  @Enumerated(EnumType.STRING)
-  private PluginFormat format;
-  private String technicalUid;
-  private String version;
-  private long fileSize;
-  @ElementCollection(fetch = FetchType.EAGER)
-  private List<String> targets;
+    @Deprecated
+    private String name;
 
-  @ElementCollection(fetch = FetchType.EAGER)
-  private List<String> formats;
+    private String downloadUrl;
 
-  @ManyToOne
-  private RemotePackage remotePackage;
+    private String downloadSha256;
 
-  public Long getId() {
-    return id;
-  }
+    @Deprecated
+    @Enumerated(EnumType.STRING)
+    private PluginFormat format;
 
-  public void setId(Long id) {
-    this.id = id;
-  }
+    private String technicalUid;
 
-  @Deprecated
-  public String getName() {
-    return name;
-  }
+    private String version;
 
-  @Deprecated
-  public void setName(String name) {
-    this.name = name;
-  }
+    private long fileSize;
 
-  public String getDownloadUrl() {
-    return downloadUrl;
-  }
+    @ElementCollection(fetch = FetchType.EAGER)
+    private List<String> targets;
 
-  public void setDownloadUrl(String downloadUrl) {
-    this.downloadUrl = downloadUrl;
-  }
+    @ElementCollection(fetch = FetchType.EAGER)
+    private List<String> formats;
 
-  public String getDownloadSha256() {
-    return downloadSha256;
-  }
+    @ManyToOne
+    private RemotePackage remotePackage;
 
-  public void setDownloadSha256(String downloadSha256) {
-    this.downloadSha256 = downloadSha256;
-  }
+    @Deprecated
+    public String getName() {
+        return name;
+    }
 
-  public String getTechnicalUid() {
-    return technicalUid;
-  }
+    @Deprecated
+    public void setName(String name) {
+        this.name = name;
+    }
 
-  public void setTechnicalUid(String technicalUid) {
-    this.technicalUid = technicalUid;
-  }
+    @Deprecated
+    public PluginFormat getFormat() {
+        return format;
+    }
 
-  public String getVersion() {
-    return version;
-  }
+    @Deprecated
+    public void setFormat(PluginFormat format) {
+        this.format = format;
+    }
 
-  public void setVersion(String version) {
-    this.version = version;
-  }
-
-  public long getFileSize() {
-    return fileSize;
-  }
-
-  public void setFileSize(long fileSize) {
-    this.fileSize = fileSize;
-  }
-
-  public List<String> getTargets() {
-    return targets;
-  }
-
-  public void setTargets(List<String> targets) {
-    this.targets = targets;
-  }
-
-  public RemotePackage getRemotePackage() {
-    return remotePackage;
-  }
-
-  public void setRemotePackage(RemotePackage remotePackage) {
-    this.remotePackage = remotePackage;
-  }
-
-  @Deprecated
-  public PluginFormat getFormat() {
-    return format;
-  }
-
-  @Deprecated
-  public void setFormat(PluginFormat format) {
-    this.format = format;
-  }
-
-  public List<String> getFormats() {
-    return formats;
-  }
-
-  public void setFormats(List<String> formats) {
-    this.formats = formats;
-  }
 }

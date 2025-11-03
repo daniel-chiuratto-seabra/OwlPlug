@@ -15,20 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.tasks;
 
 public class TaskException extends Exception {
+    public TaskException(Exception e) {
+        super(e);
+    }
 
-  public TaskException(Exception e) {
-    super(e);
-  }
+    public TaskException(String message) {
+        super(message);
+    }
 
-  public TaskException(String message) {
-    super(message);
-  }
-
-  public TaskException(String message, Exception e) {
-    super(message, e);
-  }
+    public TaskException(String message, Exception e) {
+        super(message, e);
+    }
 }

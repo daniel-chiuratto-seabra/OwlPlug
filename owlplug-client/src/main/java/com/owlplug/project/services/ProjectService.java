@@ -18,27 +18,33 @@
 
 package com.owlplug.project.services;
 
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
 import com.owlplug.core.services.BaseService;
 import com.owlplug.project.components.ProjectTaskFactory;
 import com.owlplug.project.model.DawProject;
 import com.owlplug.project.repositories.DawProjectRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ProjectService extends BaseService {
 
-  @Autowired
-  private DawProjectRepository dawProjectRepository;
-  @Autowired
-  private ProjectTaskFactory taskFactory;
+    private final DawProjectRepository dawProjectRepository;
+    private final ProjectTaskFactory projectTaskFactory;
 
-  public void syncProjects() {
-    taskFactory.createSyncTask().schedule();
-  }
+    public ProjectService(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                          final DawProjectRepository dawProjectRepository, final ProjectTaskFactory projectTaskFactory) {
+        super(applicationDefaults, applicationPreferences);
+        this.dawProjectRepository = dawProjectRepository;
+        this.projectTaskFactory = projectTaskFactory;
+    }
 
-  public Iterable<DawProject> getAllProjects() {
-    return dawProjectRepository.findAll();
-  }
+    public void syncProjects() {
+        projectTaskFactory.createSyncTask().schedule();
+    }
+
+    public Iterable<DawProject> getAllProjects() {
+        return dawProjectRepository.findAll();
+    }
 
 }

@@ -16,6 +16,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>21</java.version>
 		<javafx.version>21.0.2</javafx.version>
+        <testfx.version>4.0.18</testfx.version>
+        <junit-jupiter.version>5.9.2</junit-jupiter.version>
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
 	</properties>

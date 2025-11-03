@@ -25,7 +25,7 @@
             </Button>
             <TextField fx:id="searchTextField" prefHeight="27.0" prefWidth="170.0" promptText="Search"
                        HBox.hgrow="ALWAYS"/>
-            <!--Fixed size pane to align search box, can be replaced by a V-grow property-->
+            <!--Fixed size pane, to align search box, can be replaced by a V-grow property-->
             <Pane prefWidth="365.0" />
             <Button fx:id="exportButton" text="Export">
                 <graphic>

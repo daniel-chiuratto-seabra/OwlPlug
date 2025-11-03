@@ -15,13 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.controllers;
 
 import com.owlplug.controls.Dialog;
 import com.owlplug.controls.DialogLayout;
 import com.owlplug.controls.DoughnutChart;
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.controllers.BaseController;
+import com.owlplug.core.services.TelemetryService;
 import com.owlplug.core.utils.FileUtils;
 import com.owlplug.core.utils.PlatformUtils;
 import com.owlplug.core.utils.StringUtils;
@@ -32,12 +36,11 @@ import com.owlplug.plugin.model.PluginDirectory;
 import com.owlplug.plugin.repositories.FileStatRepository;
 import com.owlplug.plugin.tasks.DirectoryRemoveTask;
 import com.owlplug.plugin.ui.PluginListCellFactory;
-import java.util.List;
-import java.util.Optional;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.Button;
@@ -50,166 +53,160 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
+import java.io.File;
+import java.net.URL;
+import java.util.List;
+import java.util.Optional;
+import java.util.ResourceBundle;
+
 @Controller
-public class DirectoryInfoController extends BaseController {
+public class DirectoryInfoController extends BaseController implements Initializable {
 
-  @Autowired
-  private PluginTaskFactory taskFactory;
-  @Autowired
-  private FileStatRepository fileStatRepository;
+    private final PluginTaskFactory taskFactory;
+    private final FileStatRepository fileStatRepository;
 
-  @FXML
-  private Label directoryNameLabel;
-  @FXML
-  private TextField directoryPathTextField;
-  @FXML
-  private ListView<Plugin> pluginDirectoryListView;
-  @FXML
-  private Button openDirectoryButton;
-  @FXML
-  private Button deleteDirectoryButton;
-  @FXML
-  private VBox pieChartContainer;
-  @FXML
-  private Tab directoryMetricsTab;
-  @FXML
-  private Tab directoryPluginsTab;
-  @FXML
-  private Tab directoryFilesTab;
-  @FXML
-  private TableView<FileStat> directoryFilesTableView;
-  @FXML
-  private TableColumn<FileStat, String> fileNameColumn;
-  @FXML
-  private TableColumn<FileStat, String> fileSizeColumn;
-  private PieChart pieChart;
+    @FXML private Label directoryNameLabel;
+    @FXML private TextField directoryPathTextField;
+    @FXML private ListView<Plugin> pluginDirectoryListView;
+    @FXML private Button openDirectoryButton;
+    @FXML private Button deleteDirectoryButton;
+    @FXML private VBox pieChartContainer;
+    @FXML private Tab directoryMetricsTab;
+    @FXML private Tab directoryPluginsTab;
+    @FXML private Tab directoryFilesTab;
+    @FXML private TableView<FileStat> directoryFilesTableView;
+    @FXML private TableColumn<FileStat, String> fileNameColumn;
+    @FXML private TableColumn<FileStat, String> fileSizeColumn;
 
-  private PluginDirectory pluginDirectory;
+    private PieChart pieChart;
 
-  /**
-   * FXML Initialize.
-   */
-  public void initialize() {
+    private PluginDirectory pluginDirectory;
 
-    openDirectoryButton.setOnAction(e -> {
-      PlatformUtils.openFromDesktop(pluginDirectory.getPath());
-    });
+    public DirectoryInfoController(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                                   final TelemetryService telemetryService, final DialogManager dialogManager,
+                                   final PluginTaskFactory pluginTaskFactory, final FileStatRepository fileStatRepository) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager);
+        this.taskFactory = pluginTaskFactory;
+        this.fileStatRepository = fileStatRepository;
+    }
 
-    pluginDirectoryListView.setCellFactory(new PluginListCellFactory(this.getApplicationDefaults()));
+    /**
+     * FXML Initialize.
+     */
+    @Override
+    public void initialize(final URL location, final ResourceBundle resources) {
 
-    deleteDirectoryButton.setOnAction(e -> {
-      Dialog dialog = this.getDialogManager().newDialog();
-      DialogLayout layout = new DialogLayout();
+        openDirectoryButton.setOnAction(e -> PlatformUtils.openFromDesktop(pluginDirectory.getPath()));
 
-      layout.setHeading(new Label("Remove directory"));
-      layout.setBody(new Label("Do you really want to remove " + pluginDirectory.getName()
-          + " and all of its content ? This will permanently delete the file from your hard drive."));
+        pluginDirectoryListView.setCellFactory(new PluginListCellFactory(this.getApplicationDefaults()));
 
-      Button cancelButton = new Button("Cancel");
+        deleteDirectoryButton.setOnAction(e -> {
+            Dialog dialog = this.getDialogManager().newDialog();
+            DialogLayout layout = new DialogLayout();
 
-      cancelButton.setOnAction(cancelEvent -> {
-        dialog.close();
-      });
+            layout.setHeading(new Label("Remove directory"));
+            layout.setBody(new Label("Do you really want to remove " + pluginDirectory.getName()
+                    + " and all of its content ? This will permanently delete the file from your hard drive."));
 
-      Button removeButton = new Button("Remove");
-      removeButton.setOnAction(removeEvent -> {
-        dialog.close();
-        taskFactory.create(new DirectoryRemoveTask(pluginDirectory))
-            .setOnSucceeded(x -> taskFactory.createPluginSyncTask(pluginDirectory.getPath()).schedule())
-            .schedule();
-      });
-      removeButton.getStyleClass().add("button-danger");
+            Button cancelButton = new Button("Cancel");
 
-      layout.setActions(removeButton, cancelButton);
-      dialog.setContent(layout);
-      dialog.show();
-    });
+            cancelButton.setOnAction(cancelEvent -> dialog.close());
 
-    pieChart = new DoughnutChart() {
-      @Override
-      protected void layoutChartChildren(double top, double left, double contentWidth, double contentHeight) {
-        if (getLabelsVisible()) {
-          getData().forEach(d -> {
-            Optional<Node> opTextNode = this.lookupAll(".chart-pie-label").stream().filter(
-                n -> n instanceof Text && ((Text) n).getText().equals(d.getName())).findAny();
-            if (opTextNode.isPresent()) {
-              String label = StringUtils.ellipsis(d.getName(), 15, 3)
-                                 + " - " + FileUtils.humanReadableByteCount((long) d.getPieValue(), true);
-              ((Text) opTextNode.get()).setText(label);
+            Button removeButton = new Button("Remove");
+            removeButton.setOnAction(removeEvent -> {
+                dialog.close();
+                taskFactory.create(new DirectoryRemoveTask(pluginDirectory))
+                        .setOnSucceeded(x -> taskFactory.createPluginSyncTask(pluginDirectory.getPath()).schedule())
+                        .schedule();
+            });
+            removeButton.getStyleClass().add("button-danger");
+
+            layout.setActions(removeButton, cancelButton);
+            dialog.setContent(layout);
+            dialog.show();
+        });
+
+        pieChart = new DoughnutChart() {
+            @Override
+            protected void layoutChartChildren(double top, double left, double contentWidth, double contentHeight) {
+                if (getLabelsVisible()) {
+                    getData().forEach(d -> {
+                        Optional<Node> opTextNode = this.lookupAll(".chart-pie-label").stream().filter(
+                                n -> n instanceof Text && ((Text) n).getText().equals(d.getName())).findAny();
+                        if (opTextNode.isPresent()) {
+                            String label = StringUtils.ellipsis(d.getName(), 15, 3)
+                                    + " - " + FileUtils.humanReadableByteCount((long) d.getPieValue(), true);
+                            ((Text) opTextNode.get()).setText(label);
+                        }
+                    });
+                }
+                super.layoutChartChildren(top, left, contentWidth, contentHeight);
             }
-          });
+        };
+
+        pieChartContainer.getChildren().add(pieChart);
+        VBox.setVgrow(pieChart, Priority.ALWAYS);
+
+        fileNameColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getName()));
+
+        fileSizeColumn.setCellValueFactory(cellData ->
+                new SimpleStringProperty(FileUtils.humanReadableByteCount(cellData.getValue().getLength(), true)));
+    }
+
+    public void setPluginDirectory(final PluginDirectory pluginDirectory) {
+        this.pluginDirectory = pluginDirectory;
+        directoryPathTextField.setText(pluginDirectory.getPath());
+        directoryNameLabel.setText(pluginDirectory.getName());
+        pluginDirectoryListView.getItems().setAll(pluginDirectory.getPluginList());
+        directoryMetricsTab.setText("0 KB");
+
+        File file = new File(pluginDirectory.getPath());
+        deleteDirectoryButton.setDisable(!file.canWrite());
+
+        String path = pluginDirectory.getPath();
+        if (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
         }
-        super.layoutChartChildren(top, left, contentWidth, contentHeight);
-      }
-    };
 
-    pieChartContainer.getChildren().add(pieChart);
-    VBox.setVgrow(pieChart, Priority.ALWAYS);
+        Optional<FileStat> directoryStat = fileStatRepository.findByPath(path);
+        directoryStat.ifPresent(fileStat -> directoryMetricsTab.setText(
+                FileUtils.humanReadableByteCount(fileStat.getLength(), true)));
 
-    fileNameColumn.setCellValueFactory(cellData ->
-            new SimpleStringProperty(cellData.getValue().getName()));
+        directoryPluginsTab.setText("Plugins (%d)".formatted(pluginDirectory.getPluginList().size()));
 
-    fileSizeColumn.setCellValueFactory(cellData ->
-            new SimpleStringProperty(
-                    FileUtils.humanReadableByteCount(
-                            cellData.getValue().getLength(), true)));
+        List<FileStat> fileStats = fileStatRepository.findByParentPathOrderByLengthDesc(path);
+        directoryFilesTab.setText("Files (" + fileStats.size() + ")");
 
-  }
+        ObservableList<FileStat> obsStats = FXCollections.observableArrayList();
+        obsStats.addAll(fileStats);
+        directoryFilesTableView.setItems(obsStats);
 
-  public void setPluginDirectory(PluginDirectory pluginDirectory) {
-    this.pluginDirectory = pluginDirectory;
-    directoryPathTextField.setText(pluginDirectory.getPath());
-    directoryNameLabel.setText(pluginDirectory.getName());
-    pluginDirectoryListView.getItems().setAll(pluginDirectory.getPluginList());
-    directoryMetricsTab.setText("0 KB");
+        pieChart.setData(createStatChartBuckets(fileStats));
+        pieChart.layout();
 
-
-    String path = pluginDirectory.getPath();
-    if (path.endsWith("/")) {
-      path = path.substring(0, path.length() - 1);
     }
 
-    Optional<FileStat> directoryStat = fileStatRepository.findByPath(path);
-    directoryStat.ifPresent(fileStat -> directoryMetricsTab.setText(
-            FileUtils.humanReadableByteCount(fileStat.getLength(), true)));
+    private ObservableList<PieChart.Data> createStatChartBuckets(List<FileStat> fileStats) {
+        ObservableList<PieChart.Data> chartData = FXCollections.observableArrayList();
+        int i = 0;
+        int maxBucket = 7;
+        while (i < fileStats.size() && i < maxBucket) {
+            chartData.add(new PieChart.Data(fileStats.get(i).getName(), fileStats.get(i).getLength()));
+            i = i + 1;
+        }
 
-    directoryPluginsTab.setText("Plugins (" + pluginDirectory.getPluginList().size() + ")");
+        if (i < fileStats.size()) {
+            long groupLength = 0;
+            while (i < fileStats.size()) {
+                groupLength += fileStats.get(i).getLength();
+                i = i + 1;
+            }
+            chartData.add(new PieChart.Data("Others", groupLength));
+        }
 
-    List<FileStat> fileStats = fileStatRepository.findByParentPathOrderByLengthDesc(path);
-    directoryFilesTab.setText("Files (" + fileStats.size() + ")");
-
-    ObservableList<FileStat> obsStats = FXCollections.observableArrayList();
-    obsStats.addAll(fileStats);
-    directoryFilesTableView.setItems(obsStats);
-
-    pieChart.setData(createStatChartBuckets(fileStats));
-    pieChart.layout();
-
-  }
-
-  private ObservableList<PieChart.Data> createStatChartBuckets(List<FileStat> fileStats) {
-    ObservableList<PieChart.Data> chartData = FXCollections.observableArrayList();
-    int i = 0;
-    int maxBucket = 7;
-    while (i < fileStats.size() && i < maxBucket) {
-      chartData.add(new PieChart.Data(fileStats.get(i).getName(), fileStats.get(i).getLength()));
-      i = i + 1;
+        return chartData;
     }
-
-    if (i < fileStats.size()) {
-      long groupLength = 0;
-      while (i < fileStats.size()) {
-        groupLength += fileStats.get(i).getLength();
-        i = i + 1;
-      }
-      chartData.add(new PieChart.Data("Others", groupLength));
-    }
-
-    return chartData;
-  }
-
 
 }

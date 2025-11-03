@@ -26,7 +26,7 @@ import jakarta.persistence.Transient;
 import java.util.List;
 
 @Entity
-public class Symlink implements IDirectory {
+public class Symlink implements Directory {
   
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)

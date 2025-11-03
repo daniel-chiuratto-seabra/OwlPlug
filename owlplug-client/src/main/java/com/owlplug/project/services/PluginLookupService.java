@@ -18,62 +18,64 @@
 
 package com.owlplug.project.services;
 
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
 import com.owlplug.core.services.BaseService;
-import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.services.PluginService;
 import com.owlplug.project.model.DawPlugin;
 import com.owlplug.project.model.DawPluginLookup;
 import com.owlplug.project.model.LookupResult;
 import com.owlplug.project.repositories.DawPluginRepository;
 import com.owlplug.project.repositories.PluginLookupRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PluginLookupService extends BaseService {
 
-  @Autowired
-  private PluginService pluginService;
-  @Autowired
-  private PluginLookupRepository pluginLookupRepository;
-  @Autowired
-  private DawPluginRepository dawPluginRepository;
+    private final PluginService pluginService;
+    private final PluginLookupRepository pluginLookupRepository;
+    private final DawPluginRepository dawPluginRepository;
 
-  public void createLookup(DawPlugin projectPlugin) {
+    public PluginLookupService(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                               final PluginService pluginService, final PluginLookupRepository pluginLookupRepository,
+                               final DawPluginRepository dawPluginRepository) {
+        super(applicationDefaults, applicationPreferences);
+        this.pluginService = pluginService;
+        this.pluginLookupRepository = pluginLookupRepository;
+        this.dawPluginRepository = dawPluginRepository;
+    }
 
-    projectPlugin.setLookup(lookup(projectPlugin));
-    dawPluginRepository.save(projectPlugin);
+    public void createLookup(final DawPlugin projectPlugin) {
+        projectPlugin.setLookup(lookup(projectPlugin));
+        dawPluginRepository.save(projectPlugin);
+    }
 
-  }
+    public DawPluginLookup lookup(DawPlugin projectPlugin) {
+        final var dawPluginLookup = new DawPluginLookup();
+        dawPluginLookup.setDawPlugin(projectPlugin);
+        dawPluginLookup.setResult(LookupResult.MISSING);
 
-  public DawPluginLookup lookup(DawPlugin projectPlugin) {
+        var plugins = pluginService.find(projectPlugin.getName(), projectPlugin.getFormat());
 
-    DawPluginLookup lookup = new DawPluginLookup();
-    lookup.setDawPlugin(projectPlugin);
-    lookup.setResult(LookupResult.MISSING);
+        if (plugins.iterator().hasNext()) {
+            dawPluginLookup.setPlugin(plugins.iterator().next());
+            dawPluginLookup.setResult(LookupResult.FOUND);
+        } else {
+            // Resolve the Plugin file (based on known subcomponents)
+            plugins = pluginService.findByComponentName(projectPlugin.getName(), projectPlugin.getFormat());
 
-    Iterable<Plugin> plugins = pluginService.find(projectPlugin.getName(), projectPlugin.getFormat());
+            if (plugins.iterator().hasNext()) {
+                dawPluginLookup.setPlugin(plugins.iterator().next());
+                dawPluginLookup.setResult(LookupResult.FOUND);
+            }
+        }
 
-    if (plugins.iterator().hasNext()) {
-      lookup.setPlugin(plugins.iterator().next());
-      lookup.setResult(LookupResult.FOUND);
-    } else {
-      // Resolve the Plugin file (based on known subcomponents)
-      plugins = pluginService.findByComponentName(projectPlugin.getName(), projectPlugin.getFormat());
-
-      if (plugins.iterator().hasNext()) {
-        lookup.setPlugin(plugins.iterator().next());
-        lookup.setResult(LookupResult.FOUND);
-      }
+        return dawPluginLookup;
 
     }
 
-    return lookup;
-
-  }
-
-  public void deleteAllLookups() {
-    pluginLookupRepository.deleteAll();
-  }
+    public void deleteAllLookups() {
+        pluginLookupRepository.deleteAll();
+    }
 
 }

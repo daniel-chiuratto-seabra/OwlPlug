@@ -20,12 +20,13 @@
 package com.owlplug.project.tasks.discovery;
 
 import com.owlplug.project.model.DawProject;
+
 import java.io.File;
 
 public interface ProjectExplorer {
 
-  boolean canExploreFile(File file);
+    boolean canExploreFile(File file);
 
-  DawProject explore(File file) throws ProjectExplorerException;
+    DawProject explore(File file) throws ProjectExplorerException;
 
 }

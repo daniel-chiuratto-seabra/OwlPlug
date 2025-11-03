@@ -22,35 +22,14 @@ import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.components.ApplicationPreferences;
 import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.services.TelemetryService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
+@Getter
+@RequiredArgsConstructor
 public class BaseController {
-  
-  @Autowired
-  private ApplicationDefaults applicationDefaults;
-  @Autowired
-  private ApplicationPreferences preferences;
-  @Autowired
-  private TelemetryService telemetryService;
-  @Autowired
-  private DialogManager dialogManager;
-  
-  
-  public ApplicationDefaults getApplicationDefaults() {
-    return applicationDefaults;
-  }
-  
-  public ApplicationPreferences getPreferences() {
-    return preferences;
-  }
-  
-  public TelemetryService getTelemetryService() {
-    return telemetryService;
-  }
-
-  public DialogManager getDialogManager() {
-    return dialogManager;
-  }
-  
-
+    private final ApplicationDefaults applicationDefaults;
+    private final ApplicationPreferences applicationPreferences;
+    private final TelemetryService telemetryService;
+    private final DialogManager dialogManager;
 }

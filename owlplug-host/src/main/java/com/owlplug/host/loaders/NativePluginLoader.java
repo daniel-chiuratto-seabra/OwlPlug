@@ -19,22 +19,23 @@
 package com.owlplug.host.loaders;
 
 import com.owlplug.host.NativePlugin;
+
 import java.util.List;
 
 public interface NativePluginLoader {
 
-  public void init();
+    void init();
 
-  public void open();
+    void open();
 
-  public List<NativePlugin> loadPlugin(String path);
+    List<NativePlugin> loadPlugin(String path);
 
-  public void close();
+    void close();
 
-  public boolean isAvailable();
+    boolean isAvailable();
 
-  public String getName();
+    String getName();
 
-  public String getId();
+    String getId();
 
 }

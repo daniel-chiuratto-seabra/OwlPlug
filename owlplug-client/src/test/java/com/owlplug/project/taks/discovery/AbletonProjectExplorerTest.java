@@ -18,6 +18,15 @@
 
 package com.owlplug.project.taks.discovery;
 
+import com.owlplug.plugin.model.PluginFormat;
+import com.owlplug.project.model.DawApplication;
+import com.owlplug.project.model.DawProject;
+import com.owlplug.project.tasks.discovery.ProjectExplorerException;
+import com.owlplug.project.tasks.discovery.ableton.AbletonProjectExplorer;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -25,39 +34,31 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.owlplug.plugin.model.PluginFormat;
-import com.owlplug.project.model.DawApplication;
-import com.owlplug.project.model.DawProject;
-import com.owlplug.project.tasks.discovery.ProjectExplorerException;
-import com.owlplug.project.tasks.discovery.ableton.AbletonProjectExplorer;
-import java.io.File;
-import org.junit.jupiter.api.Test;
-
 public class AbletonProjectExplorerTest {
 
-  @Test
-  public void ableton11Schema5ContainingVstAndVst3ValidProject() throws ProjectExplorerException {
-    AbletonProjectExplorer explorer = new AbletonProjectExplorer();
+    @Test
+    public void ableton11Schema5ContainingVstAndVst3ValidProject() throws ProjectExplorerException {
+        final var abletonProjectExplorer = new AbletonProjectExplorer();
 
-    File file = new File(this.getClass().getClassLoader()
-            .getResource("projects/ableton/ableton11Schema5.als").getFile());
+        final var file = new File(this.getClass().getClassLoader()
+                .getResource("projects/ableton/ableton11Schema5.als").getFile());
 
-    DawProject project = explorer.explore(file);
-    assertEquals("ableton11Schema5",project.getName());
-    assertEquals(DawApplication.ABLETON, project.getApplication());
-    assertEquals("Ableton Live 11.1", project.getAppFullName());
-    assertEquals("5", project.getFormatVersion());
-    assertEquals(2, project.getPlugins().size());
+        final var dawProject = abletonProjectExplorer.explore(file);
+        assertEquals("ableton11Schema5", dawProject.getName());
+        assertEquals(DawApplication.ABLETON, dawProject.getApplication());
+        assertEquals("Ableton Live 11.1", dawProject.getAppFullName());
+        assertEquals("5", dawProject.getFormatVersion());
+        assertEquals(2, dawProject.getPlugins().size());
 
-    assertThat(project.getPlugins(), containsInAnyOrder(
-            allOf(
-                    hasProperty("name", is("Vital")),
-                    hasProperty("format", is(PluginFormat.VST2))
-            ),
-            allOf(
-                    hasProperty("name", is("Tunefish4")),
-                    hasProperty("format", is(PluginFormat.VST3))
-            )
-    ));
-  }
+        assertThat(dawProject.getPlugins(), containsInAnyOrder(
+                allOf(
+                        hasProperty("name", is("Vital")),
+                        hasProperty("format", is(PluginFormat.VST2))
+                ),
+                allOf(
+                        hasProperty("name", is("Tunefish4")),
+                        hasProperty("format", is(PluginFormat.VST3))
+                )
+        ));
+    }
 }

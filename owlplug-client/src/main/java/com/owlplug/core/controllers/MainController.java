@@ -19,6 +19,7 @@
 package com.owlplug.core.controllers;
 
 import com.owlplug.auth.controllers.AccountController;
+import com.owlplug.auth.events.AccountChangedEvent;
 import com.owlplug.auth.model.UserAccount;
 import com.owlplug.auth.services.AuthenticationService;
 import com.owlplug.auth.ui.AccountCellFactory;
@@ -28,19 +29,19 @@ import com.owlplug.controls.Drawer;
 import com.owlplug.controls.transitions.AnimatedTabListener;
 import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.components.ApplicationMonitor;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.components.ImageCache;
 import com.owlplug.core.components.LazyViewRegistry;
 import com.owlplug.core.components.TaskRunner;
 import com.owlplug.core.controllers.dialogs.CrashRecoveryDialogController;
 import com.owlplug.core.controllers.dialogs.WelcomeDialogController;
-import com.owlplug.core.utils.PlatformUtils;
+import com.owlplug.core.services.TelemetryService;
 import com.owlplug.explore.controllers.ExploreController;
 import com.owlplug.explore.services.ExploreService;
 import com.owlplug.plugin.services.PluginService;
 import com.owlplug.plugin.services.UpdateService;
 import jakarta.annotation.PreDestroy;
-import java.util.ArrayList;
-import java.util.Optional;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -49,224 +50,225 @@ import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TabPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import jfxtras.styles.jmetro.JMetroStyleClass;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Controller;
+
+import java.util.ArrayList;
+import java.util.Optional;
+
+import static com.owlplug.core.utils.PlatformUtils.openDefaultBrowser;
 
 @Controller
 public class MainController extends BaseController {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(MainController.class);
 
-  @Autowired
-  private LazyViewRegistry viewRegistry;
-  @Autowired
-  private AccountController accountController;
-  @Autowired
-  private CrashRecoveryDialogController crashRecoveryDialogController;
-  @Autowired
-  private WelcomeDialogController welcomeDialogController;
-  @Autowired
-  private OptionsController optionsController;
-  @Autowired
-  private ExploreController exploreController;
-  @Autowired
-  private AuthenticationService authenticationService;
-  @Autowired
-  private UpdateService updateService;
-  @Autowired
-  private PluginService pluginService;
-  @Autowired
-  private ExploreService exploreService;
-  @Autowired
-  private ImageCache imageCache;
-  @Autowired
-  private TaskRunner taskRunner;
-  @Autowired
-  private ApplicationMonitor applicationMonitor;
-  @FXML
-  private StackPane rootPane;
-  @FXML
-  private BorderPane mainPane;
-  @FXML
-  private TabPane tabPaneHeader;
-  @FXML
-  private TabPane tabPaneContent;
-  @FXML
-  private VBox contentPanePlaceholder;
-  @FXML
-  private Drawer leftDrawer;
-  @FXML
-  private ComboBox<AccountItem> accountComboBox;
-  @FXML
-  private Pane updatePane;
-  @FXML
-  private Button downloadUpdateButton;
+    private final LazyViewRegistry viewRegistry;
+    private final AccountController accountController;
+    private final CrashRecoveryDialogController crashRecoveryDialogController;
+    private final WelcomeDialogController welcomeDialogController;
+    private final OptionsController optionsController;
+    private final ExploreController exploreController;
+    private final AuthenticationService authenticationService;
+    private final UpdateService updateService;
+    private final PluginService pluginService;
+    private final ExploreService exploreService;
+    private final ImageCache imageCache;
+    private final TaskRunner taskRunner;
+    private final ApplicationMonitor applicationMonitor;
 
-  public static int PLUGINS_TAB_INDEX = 1;
+    @Getter @FXML private StackPane rootPane;
+    @Getter @FXML private Drawer leftDrawer;
+    @FXML private TabPane tabPaneHeader;
+    @FXML private TabPane tabPaneContent;
+    @FXML private ComboBox<AccountItem> accountComboBox;
+    @FXML private Pane updatePane;
+    @FXML private Button downloadUpdateButton;
 
-  /**
-   * FXML initialize method.
-   */
-  @FXML
-  public void initialize() {
+    public static int PLUGINS_TAB_INDEX = 1;
 
-    viewRegistry.preload();
+    public MainController(final LazyViewRegistry viewRegistry, final AccountController accountController,
+                          final CrashRecoveryDialogController crashRecoveryDialogController, final WelcomeDialogController welcomeDialogController,
+                          final OptionsController optionsController, @Lazy final ExploreController exploreController,
+                          final AuthenticationService authenticationService, final UpdateService updateService,
+                          final PluginService pluginService, final ExploreService exploreService, final ImageCache imageCache,
+                          final TaskRunner taskRunner, final ApplicationMonitor applicationMonitor, final ApplicationDefaults applicationDefaults,
+                          final ApplicationPreferences applicationPreferences, final TelemetryService telemetryService, final DialogManager dialogManager) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager);
 
-    this.tabPaneHeader.getStyleClass().add(JMetroStyleClass.UNDERLINE_TAB_PANE);
-    this.tabPaneHeader.getSelectionModel().selectedIndexProperty().addListener((options, oldValue, newValue) -> {
-      tabPaneContent.getSelectionModel().select(newValue.intValue());
-      leftDrawer.close();
-
-      // Force the store masonry pane to render correctly when the user select the
-      // store tab.
-      if (newValue.intValue() == 2) {
-        exploreController.requestLayout();
-      }
-    });
-
-    accountComboBox.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
-      if (newValue instanceof AccountMenuItem) {
-        accountController.show();
-        // Delay comboBox selector change
-        Platform.runLater(() -> accountComboBox.setValue(oldValue));
-
-      }
-      if (newValue instanceof UserAccount userAccount) {
-        this.getPreferences().putLong(ApplicationDefaults.SELECTED_ACCOUNT_KEY, userAccount.getId());
-
-      }
-      accountComboBox.hide();
-    });
-
-    accountComboBox.setButtonCell(new AccountCellFactory(imageCache, Pos.CENTER_RIGHT).call(null));
-    accountComboBox.setCellFactory(new AccountCellFactory(authenticationService, imageCache, true));
-
-    refreshAccounts();
-
-    downloadUpdateButton.setOnAction(e -> {
-      PlatformUtils.openDefaultBrowser(this.getApplicationDefaults().getUpdateDownloadUrl());
-    });
-
-    updatePane.setVisible(false);
-
-    Task<Boolean> retrieveUpdateStatusTask = new Task<>() {
-      @Override
-      protected Boolean call() throws Exception {
-        return updateService.isUpToDate();
-      }
-    };
-
-    retrieveUpdateStatusTask.setOnSucceeded(e -> {
-      if (!retrieveUpdateStatusTask.getValue()) {
-        updatePane.setVisible(true);
-      }
-    });
-
-    new Thread(retrieveUpdateStatusTask).start();
-
-    tabPaneContent.getSelectionModel()
-            .selectedItemProperty()
-            .addListener(new AnimatedTabListener());
-  }
-
-  /**
-   * Used to notify the MainController that Application is fully loaded. Must be
-   * called once in the application lifecycle.
-   */
-  public void dispatchPostInitialize() {
-
-    if (!this.applicationMonitor.isPreviousExecutionSafelyTerminated()) {
-      log.info("Previous execution not terminated safely, opening crash recovery dialog");
-      crashRecoveryDialogController.show();
-    } else if (this.getPreferences().getBoolean(ApplicationDefaults.FIRST_LAUNCH_KEY, true)) {
-      welcomeDialogController.show();
-      exploreService.syncSources();
-    }
-    this.getPreferences().putBoolean(ApplicationDefaults.FIRST_LAUNCH_KEY, false);
-    optionsController.refreshView();
-
-    this.getTelemetryService().event("/Startup");
-
-    // Startup plugin sync only triggered if configured and previous application
-    // instance safely terminated
-    if (this.applicationMonitor.isPreviousExecutionSafelyTerminated()
-            && this.getPreferences().getBoolean(ApplicationDefaults.SYNC_PLUGINS_STARTUP_KEY, false)) {
-      log.info("Starting auto plugin sync");
-      pluginService.syncPlugins();
+        this.viewRegistry = viewRegistry;
+        this.accountController = accountController;
+        this.crashRecoveryDialogController = crashRecoveryDialogController;
+        this.welcomeDialogController = welcomeDialogController;
+        this.optionsController = optionsController;
+        this.exploreController = exploreController;
+        this.authenticationService = authenticationService;
+        this.updateService = updateService;
+        this.pluginService = pluginService;
+        this.exploreService = exploreService;
+        this.imageCache = imageCache;
+        this.taskRunner = taskRunner;
+        this.applicationMonitor = applicationMonitor;
     }
 
-  }
+    /**
+     * FXML initialize method.
+     */
+    @FXML
+    public void initialize() {
 
-  public void selectMainTab(int index) {
-    this.tabPaneHeader.getSelectionModel().select(index);
-  }
+        // Initialize DialogManager to break circular dependency
+        getDialogManager().init(this);
 
-  /**
-   * Refresh Account comboBox.
-   */
-  public void refreshAccounts() {
+        viewRegistry.preload();
 
-    ArrayList<UserAccount> accounts = new ArrayList<>();
+        tabPaneHeader.getStyleClass().add(JMetroStyleClass.UNDERLINE_TAB_PANE);
+        tabPaneHeader.getSelectionModel().selectedIndexProperty().addListener((options, oldValue, newValue) -> {
+            tabPaneContent.getSelectionModel().select(newValue.intValue());
+            leftDrawer.close();
 
-    for (UserAccount account : authenticationService.getAccounts()) {
-      accounts.add(account);
+            // Force the store masonry pane to render correctly when the user selects the
+            // store tab.
+            if (newValue.intValue() == 2) {
+                exploreController.requestLayout();
+            }
+        });
+
+        accountComboBox.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
+            if (newValue instanceof AccountMenuItem) {
+                accountController.show();
+                // Delay comboBox selector change
+                Platform.runLater(() -> accountComboBox.setValue(oldValue));
+            }
+            if (newValue instanceof UserAccount userAccount) {
+                getApplicationPreferences().putLong(ApplicationDefaults.SELECTED_ACCOUNT_KEY, userAccount.getId());
+            }
+            accountComboBox.hide();
+        });
+
+        accountComboBox.setButtonCell(new AccountCellFactory(imageCache, Pos.CENTER_RIGHT).call(null));
+        accountComboBox.setCellFactory(new AccountCellFactory(authenticationService, imageCache, true));
+
+        refreshAccounts();
+
+        downloadUpdateButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getUpdateDownloadUrl()));
+
+        updatePane.setVisible(false);
+
+        Task<Boolean> retrieveUpdateStatusTask = new Task<>() {
+            @Override
+            protected Boolean call() throws Exception {
+                return updateService.isUpToDate();
+            }
+        };
+
+        retrieveUpdateStatusTask.setOnSucceeded(e -> {
+            if (!retrieveUpdateStatusTask.getValue()) {
+                updatePane.setVisible(true);
+            }
+        });
+
+        new Thread(retrieveUpdateStatusTask).start();
+
+        tabPaneContent.getSelectionModel()
+                .selectedItemProperty()
+                .addListener(new AnimatedTabListener());
     }
 
-    accountComboBox.hide();
-    accountComboBox.getItems().clear();
-    accountComboBox.getItems().setAll(accounts);
-    accountComboBox.getItems().add(new AccountMenuItem(" + New Account"));
+    @EventListener(AccountChangedEvent.class)
+    public void onAccountChanged(final AccountChangedEvent event) {
+        refreshAccounts();
+    }
 
-    long selectedAccountId = this.getPreferences().getLong(ApplicationDefaults.SELECTED_ACCOUNT_KEY, -1);
-    if (selectedAccountId != -1) {
-      Optional<UserAccount> selectedAccount = authenticationService.getUserAccountById(selectedAccountId);
-      if (selectedAccount.isPresent()) {
+    /**
+     * Used to notify the MainController that the Application is fully loaded. Must be
+     * called once in the application lifecycle.
+     */
+    public void dispatchPostInitialize() {
+        if (!applicationMonitor.isPreviousExecutionSafelyTerminated()) {
+            LOGGER.info("Previous execution not terminated safely, opening crash recovery dialog");
+            crashRecoveryDialogController.show();
+        } else if (getApplicationPreferences().getBoolean(ApplicationDefaults.FIRST_LAUNCH_KEY, true)) {
+            welcomeDialogController.show();
+            exploreService.syncSources();
+        }
+        getApplicationPreferences().putBoolean(ApplicationDefaults.FIRST_LAUNCH_KEY, false);
+        optionsController.refreshView();
 
-        // Bug workaround. The only way to pre-select the account is to find its
-        // index in the list
-        // If not, the selected cell is not rendered correctly
-        accountComboBox.getItems().stream().filter(account -> account.getId().equals(selectedAccount.get().getId()))
-            .findAny().ifPresent(accountComboBox.getSelectionModel()::select);
-      } else {
-        accountComboBox.setValue(null);
-      }
-    } else {
-      accountComboBox.setValue(null);
+        getTelemetryService().event("/Startup");
+
+        // Startup plugin sync only triggered if configured and the previous application
+        // instance safely terminated
+        if (applicationMonitor.isPreviousExecutionSafelyTerminated()
+                && getApplicationPreferences().getBoolean(ApplicationDefaults.SYNC_PLUGINS_STARTUP_KEY, false)) {
+            LOGGER.info("Starting auto plugin sync");
+            pluginService.syncPlugins();
+        }
 
     }
 
-  }
-
-  @PreDestroy
-  private void destroy() {
-    this.taskRunner.close();
-  }
-
-  public StackPane getRootPane() {
-    return rootPane;
-  }
-
-  public Drawer getLeftDrawer() {
-    return leftDrawer;
-  }
-
-  /**
-   * Set the left drawer content.
-   *
-   * @param node the content
-   */
-  public void setLeftDrawer(Parent node) {
-
-    if (node != null) {
-      leftDrawer.setSidePane(node);
+    public void selectMainTab(int index) {
+        tabPaneHeader.getSelectionModel().select(index);
     }
-  }
+
+    /**
+     * Refresh Account comboBox.
+     */
+    public void refreshAccounts() {
+
+        ArrayList<UserAccount> accounts = new ArrayList<>();
+
+        for (UserAccount account : authenticationService.getAccounts()) {
+            accounts.add(account);
+        }
+
+        accountComboBox.hide();
+        accountComboBox.getItems().clear();
+        accountComboBox.getItems().setAll(accounts);
+        accountComboBox.getItems().add(new AccountMenuItem(" + New Account"));
+
+        long selectedAccountId = getApplicationPreferences().getLong(ApplicationDefaults.SELECTED_ACCOUNT_KEY, -1);
+        if (selectedAccountId != -1) {
+            Optional<UserAccount> selectedAccount = authenticationService.getUserAccountById(selectedAccountId);
+            if (selectedAccount.isPresent()) {
+
+                // Bug workaround. The only way to pre-select the account is to find its
+                // index in the list
+                // If not, the selected cell is not rendered correctly
+                accountComboBox.getItems().stream().filter(account -> account.getId().equals(selectedAccount.get().getId()))
+                        .findAny().ifPresent(accountComboBox.getSelectionModel()::select);
+            } else {
+                accountComboBox.setValue(null);
+            }
+        } else {
+            accountComboBox.setValue(null);
+
+        }
+
+    }
+
+    @PreDestroy
+    private void destroy() {
+        taskRunner.close();
+    }
+
+    /**
+     * Set the left drawer content.
+     *
+     * @param node the content
+     */
+    public void setLeftDrawer(Parent node) {
+
+        if (node != null) {
+            leftDrawer.setSidePane(node);
+        }
+    }
 
 }

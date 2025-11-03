@@ -18,44 +18,45 @@
 
 package com.owlplug.core.utils;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+
+import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class TimeUtils {
 
-  public static final List<Long> times = Arrays.asList(
-          TimeUnit.DAYS.toMillis(365),
-          TimeUnit.DAYS.toMillis(30),
-          TimeUnit.DAYS.toMillis(1),
-          TimeUnit.HOURS.toMillis(1),
-          TimeUnit.MINUTES.toMillis(1),
-          TimeUnit.SECONDS.toMillis(1));
-  public static final List<String> timesString = Arrays.asList("year","month","day","hour","minute","second");
+    public static final List<Long> times = asList(DAYS.toMillis(365),
+                                                  DAYS.toMillis(30),
+                                                  DAYS.toMillis(1),
+                                                  HOURS.toMillis(1),
+                                                  MINUTES.toMillis(1),
+                                                  SECONDS.toMillis(1));
 
-  public static String getHumanReadableDurationFrom(Date date) {
-    long duration = new Date().getTime() - date.getTime();
-    return toDuration(duration);
+    public static final List<String> timesString = asList("year", "month", "day", "hour", "minute", "second");
 
-  }
-
-  private static String toDuration(long duration) {
-
-    StringBuilder res = new StringBuilder();
-    for (int i = 0; i < times.size(); i++) {
-      Long current = times.get(i);
-      long temp = duration / current;
-      if (temp > 0) {
-        res.append(temp).append(" ").append(timesString.get(i)).append(temp != 1 ? "s" : "").append(" ago");
-        break;
-      }
+    public static String getHumanReadableDurationFrom(final Date date) {
+        long duration = new Date().getTime() - date.getTime();
+        return toDuration(duration);
     }
-    if ("".contentEquals(res)) {
-      return "0 seconds ago";
-    } else {
-      return res.toString();
-    }
-  }
 
+    private static String toDuration(long duration) {
+        StringBuilder res = new StringBuilder();
+        for (int i = 0; i < times.size(); i++) {
+            Long current = times.get(i);
+            long temp = duration / current;
+            if (temp > 0) {
+                res.append(temp).append(" ").append(timesString.get(i)).append(temp != 1 ? "s" : "").append(" ago");
+                break;
+            }
+        }
+        if ("".contentEquals(res)) {
+            return "0 seconds ago";
+        } else {
+            return res.toString();
+        }
+    }
 }

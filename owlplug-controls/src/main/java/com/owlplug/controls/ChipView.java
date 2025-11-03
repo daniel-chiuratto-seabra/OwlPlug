@@ -19,9 +19,6 @@
 package com.owlplug.controls;
 
 import com.owlplug.controls.skins.ChipViewSkin;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -35,143 +32,242 @@ import javafx.scene.control.Skin;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
+
 /**
  * ChipView inspired by JFXChipView from JFoenix.
- *
  */
 @Deprecated
 public class ChipView<T> extends Control {
 
-  private static <T> StringConverter<T> defaultStringConverter() {
-    return new StringConverter<T>() {
-      @Override
-      public String toString(T t) {
-        return t == null ? null : t.toString();
-      }
+    private static final String DEFAULT_STYLE_CLASS = "chip-view";
 
-      @Override
-      public T fromString(String string) {
-        return (T) string;
-      }
-    };
-  }
+    /**
+     * Converts the user-typed input (when the ChipArea is
+     * editable to an object of type T, such that
+     * the input may be retrieved via the property.)
+     */
+    private final ObjectProperty<StringConverter<T>> converter = new SimpleObjectProperty<StringConverter<T>>(this, "converter", ChipView.defaultStringConverter());
 
-  public ChipView() {
-    getStyleClass().add(DEFAULT_STYLE_CLASS);
-  }
+    private final StringProperty promptText = new SimpleStringProperty(this, "promptText", "");
 
-  private static final String DEFAULT_STYLE_CLASS = "chip-view";
+    private final AutoCompletePopup<T> autoCompletePopup = new ChipViewSkin.ChipsAutoComplete<>();
 
-  @Override
-  protected Skin<?> createDefaultSkin() {
-    return new ChipViewSkin<T>(this);
-  }
+    private final ObservableList<T> chips = FXCollections.observableArrayList();
 
-  private ObjectProperty<BiFunction<ChipView<T>, T, Chip<T>>> chipFactory;
+    private final ObjectProperty<BiPredicate<T, String>> predicate = new SimpleObjectProperty<>(
+            (item, text) -> {
+                StringConverter<T> converter = getConverter();
+                String itemString = converter != null ? converter.toString(item) : item.toString();
+                return itemString.toLowerCase().contains(text.toLowerCase());
+            }
+    );
 
-  public BiFunction<ChipView<T>, T, Chip<T>> getChipFactory() {
-    return chipFactory == null ? null : chipFactory.get();
-  }
+    private ObjectProperty<BiFunction<ChipView<T>, T, Chip<T>>> chipFactory;
+    private ObjectProperty<Function<T, T>> selectionHandler;
 
-  public ObjectProperty<BiFunction<ChipView<T>, T, Chip<T>>> chipFactoryProperty() {
-    if (chipFactory == null) {
-      chipFactory = new SimpleObjectProperty<>(this, "chipFactory");
+    private static <T> StringConverter<T> defaultStringConverter() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(T t) {
+                return t == null ? null : t.toString();
+            }
+
+            @Override
+            public T fromString(String string) {
+                return (T) string;
+            }
+        };
     }
-    return chipFactory;
-  }
 
-  public void setChipFactory(BiFunction<ChipView<T>, T, Chip<T>> chipFactory) {
-    chipFactoryProperty().set(chipFactory);
-  }
-
-  private ObjectProperty<Function<T, T>> selectionHandler;
-
-  public Function<T, T> getSelectionHandler() {
-    return selectionHandler == null ? null : selectionHandler.get();
-  }
-
-  public ObjectProperty<Function<T, T>> selectionHandlerProperty() {
-    if (selectionHandler == null) {
-      selectionHandler = new SimpleObjectProperty<>(this, "selectionHandler");
+    public ChipView() {
+        getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
-    return selectionHandler;
-  }
 
-  public void setSelectionHandler(Function<T, T> selectionHandler) {
-    selectionHandlerProperty().set(selectionHandler);
-  }
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected Skin<?> createDefaultSkin() {
+        return new ChipViewSkin<T>(this);
+    }
 
-  private StringProperty promptText = new SimpleStringProperty(this, "promptText", "");
+    /**
+     * Returns the chip factory used to create chips for the items in the ChipView.
+     *
+     * @return The chip factory.
+     */
+    public BiFunction<ChipView<T>, T, Chip<T>> getChipFactory() {
+        return chipFactory == null ? null : chipFactory.get();
+    }
 
-  public final StringProperty promptTextProperty() {
-    return promptText;
-  }
+    /**
+     * Returns the property for the chip factory.
+     *
+     * @return The chip factory property.
+     */
+    public ObjectProperty<BiFunction<ChipView<T>, T, Chip<T>>> chipFactoryProperty() {
+        if (chipFactory == null) {
+            chipFactory = new SimpleObjectProperty<>(this, "chipFactory");
+        }
+        return chipFactory;
+    }
 
-  public final String getPromptText() {
-    return promptText.get();
-  }
+    /**
+     * Sets the chip factory to be used for creating chips.
+     *
+     * @param chipFactory The new chip factory.
+     */
+    public void setChipFactory(BiFunction<ChipView<T>, T, Chip<T>> chipFactory) {
+        chipFactoryProperty().set(chipFactory);
+    }
 
-  public final void setPromptText(String value) {
-    promptText.set(value);
-  }
+    /**
+     * Returns the selection handler, which is a function that is called when a chip is selected.
+     *
+     * @return The selection handler.
+     */
+    public Function<T, T> getSelectionHandler() {
+        return selectionHandler == null ? null : selectionHandler.get();
+    }
 
-  private AutoCompletePopup<T> autoCompletePopup = new ChipViewSkin.ChipsAutoComplete<T>();
+    /**
+     * Returns the property for the selection handler.
+     *
+     * @return The selection handler property.
+     */
+    public ObjectProperty<Function<T, T>> selectionHandlerProperty() {
+        if (selectionHandler == null) {
+            selectionHandler = new SimpleObjectProperty<>(this, "selectionHandler");
+        }
+        return selectionHandler;
+    }
 
-  public AutoCompletePopup<T> getAutoCompletePopup() {
-    return autoCompletePopup;
-  }
+    /**
+     * Sets the selection handler.
+     *
+     * @param selectionHandler The new selection handler.
+     */
+    public void setSelectionHandler(Function<T, T> selectionHandler) {
+        selectionHandlerProperty().set(selectionHandler);
+    }
 
-  public ObservableList<T> getSuggestions() {
-    return autoCompletePopup.getSuggestions();
-  }
+    /**
+     * Returns the property for the prompt text.
+     *
+     * @return The prompt text property.
+     */
+    public final StringProperty promptTextProperty() {
+        return promptText;
+    }
 
-  public void setSuggestionsCellFactory(Callback<ListView<T>, ListCell<T>> factory) {
-    autoCompletePopup.setSuggestionsCellFactory(factory);
-  }
+    /**
+     * Returns the prompt text.
+     *
+     * @return The prompt text.
+     */
+    public final String getPromptText() {
+        return promptText.get();
+    }
 
-  private ObjectProperty<BiPredicate<T, String>> predicate = new SimpleObjectProperty<>(
-      (item, text) -> {
-        StringConverter<T> converter = getConverter();
-        String itemString = converter != null ? converter.toString(item) : item.toString();
-        return itemString.toLowerCase().contains(text.toLowerCase());
-      }
-  );
+    /**
+     * Sets the prompt text.
+     *
+     * @param value The new prompt text.
+     */
+    public final void setPromptText(String value) {
+        promptText.set(value);
+    }
 
-  public BiPredicate<T, String> getPredicate() {
-    return predicate.get();
-  }
+    /**
+     * Returns the auto-complete popup used by the ChipView.
+     *
+     * @return The auto-complete popup.
+     */
+    public AutoCompletePopup<T> getAutoCompletePopup() {
+        return autoCompletePopup;
+    }
 
-  public ObjectProperty<BiPredicate<T, String>> predicateProperty() {
-    return predicate;
-  }
+    /**
+     * Returns the list of suggestions for the auto-complete popup.
+     *
+     * @return The list of suggestions.
+     */
+    public ObservableList<T> getSuggestions() {
+        return autoCompletePopup.getSuggestions();
+    }
 
-  public void setPredicate(BiPredicate<T, String> predicate) {
-    this.predicate.set(predicate);
-  }
-  private ObservableList<T> chips = FXCollections.observableArrayList();
+    /**
+     * Sets the cell factory for the suggestions in the auto-complete popup.
+     *
+     * @param factory The new cell factory.
+     */
+    public void setSuggestionsCellFactory(Callback<ListView<T>, ListCell<T>> factory) {
+        autoCompletePopup.setSuggestionsCellFactory(factory);
+    }
 
-  public ObservableList<T> getChips() {
-    return chips;
-  }
+    /**
+     * Returns the predicate used to filter the suggestions in the auto-complete popup.
+     *
+     * @return The predicate.
+     */
+    public BiPredicate<T, String> getPredicate() {
+        return predicate.get();
+    }
 
-  /**
-   * Converts the user-typed input (when the ChipArea is
-   * editable to an object of type T, such that
-   * the input may be retrieved via the property.
-   */
+    /**
+     * Returns the property for the predicate used to filter the suggestions.
+     *
+     * @return The predicate property.
+     */
+    public ObjectProperty<BiPredicate<T, String>> predicateProperty() {
+        return predicate;
+    }
 
-  private ObjectProperty<StringConverter<T>> converter =
-      new SimpleObjectProperty<StringConverter<T>>(this, "converter", ChipView.defaultStringConverter());
+    /**
+     * Sets the predicate to be used for filtering the suggestions.
+     *
+     * @param predicate The new predicate.
+     */
+    public void setPredicate(BiPredicate<T, String> predicate) {
+        this.predicate.set(predicate);
+    }
 
-  public ObjectProperty<StringConverter<T>> converterProperty() {
-    return converter;
-  }
+    /**
+     * Returns the list of chips currently displayed in the ChipView.
+     *
+     * @return The list of chips.
+     */
+    public ObservableList<T> getChips() {
+        return chips;
+    }
 
-  public final void setConverter(StringConverter<T> value) {
-    converterProperty().set(value);
-  }
+    /**
+     * Returns the property for the converter used to convert user input to an object of type T.
+     *
+     * @return The converter property.
+     */
+    public ObjectProperty<StringConverter<T>> converterProperty() {
+        return converter;
+    }
 
-  public final StringConverter<T> getConverter() {
-    return converterProperty().get();
-  }
+    /**
+     * Sets the converter to be used for converting user input to an object of type T.
+     *
+     * @param value The new converter.
+     */
+    public final void setConverter(StringConverter<T> value) {
+        converterProperty().set(value);
+    }
+
+    /**
+     * Returns the converter used to convert user input to an object of type T.
+     *
+     * @return The converter.
+     */
+    public final StringConverter<T> getConverter() {
+        return converterProperty().get();
+    }
 }

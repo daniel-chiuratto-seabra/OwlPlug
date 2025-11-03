@@ -19,131 +19,126 @@
 package com.owlplug.explore.model.mappers.oas;
 
 import com.owlplug.explore.model.PackageBundle;
-import com.owlplug.explore.model.PackageTag;
 import com.owlplug.explore.model.RemotePackage;
 import com.owlplug.explore.model.RemoteSource;
 import com.owlplug.plugin.model.PluginType;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import static com.owlplug.core.utils.OperationUtils.getPackageTagList;
+
 public class OASModelAdapter {
 
-  /**
-   * Creates a {@link RemoteSource} entity from a {@link OASRegistry}.
-   *
-   * @param registry registry json mapper
-   * @return RemoteSourceEntity
-   */
-  public static RemoteSource mapperToEntity(OASRegistry registry) {
+    /**
+     * Creates a {@link RemoteSource} entity from a {@link OASRegistry}.
+     *
+     * @param registry registry json mapper
+     * @return RemoteSourceEntity
+     */
+    public static RemoteSource mapperToEntity(OASRegistry registry) {
 
-    RemoteSource remoteSource = new RemoteSource();
-    remoteSource.setName(registry.getName());
-    remoteSource.setDisplayUrl(registry.getUrl());
-    return remoteSource;
-  }
-
-  /**
-   * Creates a {@link RemotePackage} entity from a {@link OASPlugin}.
-   *
-   * @param plugin product json mapper
-   * @return product entity
-   */
-  public static RemotePackage mapperToEntity(OASPlugin plugin) {
-
-    RemotePackage remotePackage = new RemotePackage();
-    remotePackage.setName(plugin.getName());
-    remotePackage.setPageUrl(plugin.getUrl());
-    remotePackage.setScreenshotUrl(plugin.getImage());
-    remotePackage.setCreator(plugin.getAuthor());
-    remotePackage.setLicense(plugin.getLicense());
-    remotePackage.setDescription(plugin.getDescription());
-    remotePackage.setDonateUrl(plugin.getDonate());
-
-    // Only supports effect and instrument plugin type
-    if (plugin.getType() != null
-            && PluginType.fromString(plugin.getType()) != null) {
-      remotePackage.setType(PluginType.fromString(plugin.getType()));
+        RemoteSource remoteSource = new RemoteSource();
+        remoteSource.setName(registry.getName());
+        remoteSource.setDisplayUrl(registry.getUrl());
+        return remoteSource;
     }
 
-    addBundlesToPackage(remotePackage, plugin.getFiles());
+    /**
+     * Creates a {@link RemotePackage} entity from a {@link OASPlugin}.
+     *
+     * @param plugin product json mapper
+     * @return product entity
+     */
+    public static RemotePackage mapperToEntity(OASPlugin plugin) {
 
-    HashSet<PackageTag> tags = new HashSet<>();
-    if (plugin.getTags() != null) {
-      for (String tag : plugin.getTags()) {
-        tags.add(new PackageTag(tag, remotePackage));
-      }
-    }
-    remotePackage.setTags(tags);
+        RemotePackage remotePackage = new RemotePackage();
+        remotePackage.setName(plugin.getName());
+        remotePackage.setPageUrl(plugin.getUrl());
+        remotePackage.setScreenshotUrl(plugin.getImage());
+        remotePackage.setCreator(plugin.getAuthor());
+        remotePackage.setLicense(plugin.getLicense());
+        remotePackage.setDescription(plugin.getDescription());
+        remotePackage.setDonateUrl(plugin.getDonate());
 
-    return remotePackage;
-  }
-
-  /**
-   * Creates a {@link PackageBundle} entity from a {@link OASFile}.
-   *
-   * @param file bundle json bundleMapper
-   * @return bundle entity
-   */
-  public static PackageBundle mapperToEntity(OASFile file, String name) {
-
-    PackageBundle packageBundle = new PackageBundle();
-    packageBundle.setDownloadUrl(file.getUrl());
-    packageBundle.setDownloadSha256(file.getSha256());
-
-    List<String> targets = new ArrayList<>();
-    for (OASFile.System system : file.getSystems()) {
-      for (String arch : file.getArchitectures()) {
-        targets.add(system.getType() + "-" + arch);
-      }
-    }
-    packageBundle.setTargets(targets);
-
-    String bundleName = name + " - " + String.join(" ", targets);
-    packageBundle.setName(bundleName);
-
-    // Size in OAS registry is in bits not in bytes.
-    packageBundle.setFileSize(file.getSize() / 8);
-    packageBundle.setFormats(getPluginFormatsFromFileFormats(file.getContains()));
-
-    return packageBundle;
-  }
-
-  private static void addBundlesToPackage(RemotePackage remotePackage, List<OASFile> files) {
-    HashSet<PackageBundle> bundles = new HashSet<>();
-    if (files != null) {
-      for (OASFile file : files) {
-
-        // Skipping. If a file contains only unmappable plugins formats
-        if (getPluginFormatsFromFileFormats(file.getContains()).isEmpty()) {
-          continue;
+        // Only supports an effect and instrument plugin type
+        if (plugin.getType() != null
+                && PluginType.fromString(plugin.getType()) != null) {
+            remotePackage.setType(PluginType.fromString(plugin.getType()));
         }
 
-        // Skipping. OwlPlug only supports archives (installer not supported)
-        if (!file.getType().equals("archive")) {
-          continue;
+        addBundlesToPackage(remotePackage, plugin.getFiles());
+        remotePackage.setTags(getPackageTagList(plugin.getTags(), remotePackage));
+
+        return remotePackage;
+    }
+
+    /**
+     * Creates a {@link PackageBundle} entity from a {@link OASFile}.
+     *
+     * @param file bundle json bundleMapper
+     * @return bundle entity
+     */
+    public static PackageBundle mapperToEntity(OASFile file, String name) {
+
+        PackageBundle packageBundle = new PackageBundle();
+        packageBundle.setDownloadUrl(file.getUrl());
+        packageBundle.setDownloadSha256(file.getSha256());
+
+        List<String> targets = new ArrayList<>();
+        for (OASFile.System system : file.getSystems()) {
+            for (String arch : file.getArchitectures()) {
+                targets.add(system.getType() + "-" + arch);
+            }
+        }
+        packageBundle.setTargets(targets);
+
+        String bundleName = name + " - " + String.join(" ", targets);
+        packageBundle.setName(bundleName);
+
+        // Size in OAS registry is in bits not in bytes.
+        packageBundle.setFileSize(file.getSize() / 8);
+        packageBundle.setFormats(getPluginFormatsFromFileFormats(file.getContains()));
+
+        return packageBundle;
+    }
+
+    private static void addBundlesToPackage(RemotePackage remotePackage, List<OASFile> files) {
+        HashSet<PackageBundle> bundles = new HashSet<>();
+        if (files != null) {
+            for (OASFile file : files) {
+
+                // Skipping. If a file contains only unmappable plugins formats
+                if (getPluginFormatsFromFileFormats(file.getContains()).isEmpty()) {
+                    continue;
+                }
+
+                // Skipping. OwlPlug only supports archives (installer not supported)
+                if (!file.getType().equals("archive")) {
+                    continue;
+                }
+
+                PackageBundle bundle = mapperToEntity(file, remotePackage.getName());
+                bundle.setRemotePackage(remotePackage);
+                bundles.add(bundle);
+            }
         }
 
-        PackageBundle bundle = mapperToEntity(file, remotePackage.getName());
-        bundle.setRemotePackage(remotePackage);
-        bundles.add(bundle);
-      }
+        remotePackage.setBundles(bundles);
     }
 
-    remotePackage.setBundles(bundles);
-  }
-
-  private static List<String> getPluginFormatsFromFileFormats(List<String> fileFormats) {
-    HashSet<String> pluginFormats = new HashSet<>();
-    for (String format : fileFormats) {
-      switch (format) {
-        case "component" -> pluginFormats.add("au");
-        case "lv2" -> pluginFormats.add("lv2");
-        case "vst3" -> pluginFormats.add("vst3");
-        case "so", "vst", "dll" -> pluginFormats.add("vst2");
-      }
+    private static List<String> getPluginFormatsFromFileFormats(List<String> fileFormats) {
+        HashSet<String> pluginFormats = new HashSet<>();
+        for (String format : fileFormats) {
+            switch (format) {
+                case "component" -> pluginFormats.add("au");
+                case "lv2" -> pluginFormats.add("lv2");
+                case "vst3" -> pluginFormats.add("vst3");
+                case "so", "vst", "dll" -> pluginFormats.add("vst2");
+            }
+        }
+        return pluginFormats.stream().toList();
     }
-    return pluginFormats.stream().toList();
-  }
 
 }

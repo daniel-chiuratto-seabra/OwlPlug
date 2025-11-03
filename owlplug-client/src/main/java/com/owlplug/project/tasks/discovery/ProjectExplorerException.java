@@ -21,7 +21,8 @@ package com.owlplug.project.tasks.discovery;
 
 public class ProjectExplorerException extends Exception {
 
-  public ProjectExplorerException(String message, Throwable e) {
-    super(message, e);
-  }
+    public ProjectExplorerException(final String message, final Throwable throwable) {
+        super(message, throwable);
+    }
+
 }

@@ -15,11 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.utils.nio;
 
 @FunctionalInterface
 public interface ProgressCallback {
-  public void onProgress(double progress);
-
+    void onProgress(double progress);
 }

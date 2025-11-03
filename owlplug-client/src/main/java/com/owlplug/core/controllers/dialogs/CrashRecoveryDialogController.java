@@ -20,17 +20,16 @@ package com.owlplug.core.controllers.dialogs;
 
 import com.owlplug.controls.DialogLayout;
 import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.components.LazyViewRegistry;
 import com.owlplug.core.controllers.OptionsController;
+import com.owlplug.core.services.TelemetryService;
 import com.owlplug.core.utils.PlatformUtils;
 import com.owlplug.host.loaders.NativePluginLoader;
-import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.services.NativeHostService;
 import com.owlplug.plugin.services.PluginService;
 import com.owlplug.plugin.ui.RecoveredPluginView;
-import java.util.List;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -41,123 +40,108 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+
+import static com.owlplug.core.components.ApplicationDefaults.NATIVE_HOST_ENABLED_KEY;
+import static com.owlplug.core.utils.OperationUtils.initializeNativeHostSettings;
+import static com.owlplug.core.utils.PlatformUtils.openDefaultBrowser;
+import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 
 @Controller
 public class CrashRecoveryDialogController extends AbstractDialogController {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(CrashRecoveryDialogController.class);
 
-  @Autowired
-  private LazyViewRegistry lazyViewRegistry;
-  @Autowired
-  private PluginService pluginService;
-  @Autowired
-  private NativeHostService nativeHostService;
-  @Autowired 
-  private OptionsController optionsController;
-  
-  
-  @FXML
-  protected CheckBox nativeDiscoveryCheckbox;
-  @FXML
-  protected ComboBox<NativePluginLoader> pluginNativeComboBox;
-  @FXML
-  protected Button closeButton;
-  @FXML
-  protected Button openLogsButton;
-  @FXML
-  protected Hyperlink troubleshootingLink;
-  @FXML 
-  protected Hyperlink issuesLink;
-  @FXML
-  protected VBox pluginListContainer;
-  @FXML
-  protected Pane incompleteSyncPane;
-  
-  
-  CrashRecoveryDialogController() {
-    super(600, 550);
-    this.setOverlayClose(false);
-  }
+    private final LazyViewRegistry lazyViewRegistry;
+    private final PluginService pluginService;
+    private final NativeHostService nativeHostService;
+    private final OptionsController optionsController;
 
-  /**
-   * FXML initialize.
-   */
-  public void initialize() {
-    
-    nativeDiscoveryCheckbox.setDisable(!nativeHostService.isNativeHostAvailable());
-    nativeDiscoveryCheckbox.setSelected(this.getPreferences().getBoolean(
-        ApplicationDefaults.NATIVE_HOST_ENABLED_KEY, false));
-    
-    nativeDiscoveryCheckbox.selectedProperty().addListener((observable, oldValue, newValue) -> {
-      this.getPreferences().putBoolean(ApplicationDefaults.NATIVE_HOST_ENABLED_KEY, newValue);
-      this.pluginNativeComboBox.setDisable(!newValue);
-    });
+    @FXML
+    protected CheckBox nativeDiscoveryCheckbox;
+    @FXML
+    protected ComboBox<NativePluginLoader> pluginNativeComboBox;
+    @FXML
+    protected Button closeButton;
+    @FXML
+    protected Button openLogsButton;
+    @FXML
+    protected Hyperlink troubleshootingLink;
+    @FXML
+    protected Hyperlink issuesLink;
+    @FXML
+    protected VBox pluginListContainer;
+    @FXML
+    protected Pane incompleteSyncPane;
 
-    ObservableList<NativePluginLoader> pluginLoaders = FXCollections.observableArrayList(
-        nativeHostService.getAvailablePluginLoaders());
-    pluginNativeComboBox.setItems(pluginLoaders);
-
-    pluginNativeComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue != null) {
-        this.getPreferences().put(ApplicationDefaults.PREFERRED_NATIVE_LOADER, newValue.getId());
-        nativeHostService.setCurrentPluginLoader(newValue);
-      }
-    });
-
-    pluginNativeComboBox.setDisable(!nativeHostService.isNativeHostAvailable());
-    NativePluginLoader pluginLoader = nativeHostService.getCurrentPluginLoader();
-    pluginNativeComboBox.getSelectionModel().select(pluginLoader);
-
-    troubleshootingLink.setOnAction((e) -> PlatformUtils.openDefaultBrowser(
-        this.getApplicationDefaults().getEnvProperty("owlplug.github.wiki.url")
-    ));
-    issuesLink.setOnAction((e) -> PlatformUtils.openDefaultBrowser(
-        this.getApplicationDefaults().getEnvProperty("owlplug.github.issues.url")
-    ));
-    
-    closeButton.setOnAction(e -> {
-      optionsController.refreshView();
-      this.close();
-    });
-
-    openLogsButton.setOnAction(e -> {
-      PlatformUtils.openFromDesktop(ApplicationDefaults.getLogDirectory());
-    });
-    
-    List<Plugin> incompleteSyncPlugins = pluginService.getSyncIncompletePlugins();
-    
-    if (incompleteSyncPlugins.size() > 0) {
-      incompleteSyncPane.setVisible(true);
-      for (Plugin plugin : incompleteSyncPlugins) {
-        log.info("Last scan for plugin {} is incomplete", plugin.getName());
-        RecoveredPluginView pluginView = new RecoveredPluginView(plugin, pluginService, this.getApplicationDefaults());
-        pluginListContainer.getChildren().add(pluginView);
-
-        this.getTelemetryService().event("/Error/PluginScanIncomplete", p -> {
-          p.put("nativeDiscoveryLoader", this.getPreferences().get(
-              ApplicationDefaults.PREFERRED_NATIVE_LOADER, "unknown"));
-          p.put("pluginName", plugin.getName());
-        });
-      }
-    } else {
-      incompleteSyncPane.setVisible(false);
+    CrashRecoveryDialogController(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                                  final TelemetryService telemetryService, final DialogManager dialogManager,
+                                  final LazyViewRegistry lazyViewRegistry, final PluginService pluginService,
+                                  final NativeHostService nativeHostService, final OptionsController optionsController) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager, 600, 550);
+        this.lazyViewRegistry = lazyViewRegistry;
+        this.pluginService = pluginService;
+        this.nativeHostService = nativeHostService;
+        this.optionsController = optionsController;
+        setOverlayClose(false);
     }
-    
-  }
 
-  protected DialogLayout getLayout() {
+    /**
+     * FXML initialize.
+     */
+    public void initialize() {
 
-    DialogLayout layout = new DialogLayout();
+        nativeDiscoveryCheckbox.setDisable(!nativeHostService.isNativeHostAvailable());
+        nativeDiscoveryCheckbox.setSelected(getApplicationPreferences().getBoolean(NATIVE_HOST_ENABLED_KEY, false));
 
-    Label title = new Label("Ooh, something wrong happens :(");
-    title.getStyleClass().add("heading-3");
-    layout.setHeading(title);
-    layout.setBody(lazyViewRegistry.get(LazyViewRegistry.CRASH_RECOVERY_VIEW));
+        initializeNativeHostSettings(getApplicationPreferences(), nativeDiscoveryCheckbox, pluginNativeComboBox, nativeHostService);
 
-    return layout;
-  }
+        pluginNativeComboBox.setDisable(!nativeHostService.isNativeHostAvailable());
+        NativePluginLoader pluginLoader = nativeHostService.getCurrentPluginLoader();
+        pluginNativeComboBox.getSelectionModel().select(pluginLoader);
+
+        troubleshootingLink.setOnAction((e) -> openDefaultBrowser(
+                getApplicationDefaults().getEnvProperty("owlplug.github.wiki.url")
+        ));
+        issuesLink.setOnAction((e) -> openDefaultBrowser(
+                getApplicationDefaults().getEnvProperty("owlplug.github.issues.url")
+        ));
+
+        closeButton.setOnAction(e -> {
+            optionsController.refreshView();
+            close();
+        });
+
+        openLogsButton.setOnAction(e -> PlatformUtils.openFromDesktop(ApplicationDefaults.getLogDirectory()));
+
+        final var incompleteSyncPlugins = pluginService.getSyncIncompletePlugins();
+        if (isNotEmpty(incompleteSyncPlugins)) {
+            incompleteSyncPane.setVisible(true);
+            for (final var plugin : incompleteSyncPlugins) {
+                LOGGER.info("Last scan for plugin {} is incomplete", plugin.getName());
+                RecoveredPluginView pluginView = new RecoveredPluginView(plugin, pluginService, getApplicationDefaults());
+                pluginListContainer.getChildren().add(pluginView);
+
+                getTelemetryService().event("/Error/PluginScanIncomplete", p -> {
+                    p.put("nativeDiscoveryLoader", getApplicationPreferences().get(ApplicationDefaults.PREFERRED_NATIVE_LOADER, "unknown"));
+                    p.put("pluginName", plugin.getName());
+                });
+            }
+        } else {
+            incompleteSyncPane.setVisible(false);
+        }
+
+    }
+
+    protected DialogLayout getLayout() {
+        final var layout = new DialogLayout();
+
+        final var title = new Label("Ooh, something wrong happens :(");
+        title.getStyleClass().add("heading-3");
+        layout.setHeading(title);
+        layout.setBody(lazyViewRegistry.get(LazyViewRegistry.CRASH_RECOVERY_VIEW));
+
+        return layout;
+    }
 
 }

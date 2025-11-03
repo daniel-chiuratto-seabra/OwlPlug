@@ -23,30 +23,62 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.layout.Region;
 
+/**
+ * A JavaFX component that represents a single chip in the {@link ChipView}.
+ *
+ * @param <T> The type of the item that the chip represents.
+ */
 public class Chip<T> extends Region {
 
-  protected final ChipView<T> view;
-  private ObjectProperty<T> item = new SimpleObjectProperty<T>(this, "item");
+    private final ObjectProperty<T> item = new SimpleObjectProperty<T>(this, "item");
 
-  public Chip(ChipView<T> view, T item) {
-    this.view = view;
-    getStyleClass().add("chip");
-    setItem(item);
-  }
+    protected final ChipView<T> view;
 
-  public final ObjectProperty<T> itemProperty() {
-    return item;
-  }
+    /**
+     * Creates a new Chip.
+     *
+     * @param view The ChipView that this chip belongs to.
+     * @param item The item that this chip represents.
+     */
+    public Chip(final ChipView<T> view, final T item) {
+        this.view = view;
+        getStyleClass().add("chip");
+        setItem(item);
+    }
 
-  public final void setItem(T value) {
-    item.set(value);
-  }
+    /**
+     * Returns the property for the item that this chip represents.
+     *
+     * @return The item property.
+     */
+    public final ObjectProperty<T> itemProperty() {
+        return item;
+    }
 
-  public final T getItem() {
-    return item.get();
-  }
+    /**
+     * Sets the item that this chip represents.
+     *
+     * @param value The new item.
+     */
+    public final void setItem(T value) {
+        item.set(value);
+    }
 
-  public final ChipView getChipView() {
-    return view;
-  }
+    /**
+     * Returns the item that this chip represents.
+     *
+     * @return The item.
+     */
+    public final T getItem() {
+        return item.get();
+    }
+
+    /**
+     * Returns the ChipView that this chip belongs to.
+     *
+     * @return The ChipView.
+     */
+    public final ChipView<T> getChipView() {
+        return view;
+    }
 }

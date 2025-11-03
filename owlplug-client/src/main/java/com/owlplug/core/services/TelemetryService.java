@@ -23,102 +23,101 @@ import com.mixpanel.mixpanelapi.ClientDelivery;
 import com.mixpanel.mixpanelapi.MessageBuilder;
 import com.mixpanel.mixpanelapi.MixpanelAPI;
 import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
 import jakarta.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Consumer;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+
 @Service
 public class TelemetryService extends BaseService {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(TelemetryService.class);
 
-  private MessageBuilder messageBuilder;
+    private static final int MAX_PROPS_LENGTH = 2000;
 
-  private MixpanelAPI mixpanel;
+    private MessageBuilder messageBuilder;
+    private MixpanelAPI mixpanel;
+    private String userId = null;
 
-  private String userId = null;
+    private static final Set<String> allowedEvents = Set.of("/Startup",
+                                                            "/Error/PluginScanIncomplete",
+                                                            "/Error/TaskExecution");
 
-  private static final int MAX_PROPS_LENGTH = 2000;
-
-  private static final List<String> allowedEvents = List.of(
-      "/Startup",
-      "/Error/PluginScanIncomplete",
-      "/Error/TaskExecution"
-  );
-
-  @PostConstruct
-  private void initialize() {
-    mixpanel = new MixpanelAPI("https://api-eu.mixpanel.com/track",
-        "https://api-eu.mixpanel.com/engage");
-    messageBuilder = new MessageBuilder(this.getApplicationDefaults().getEnvProperty("owlplug.telemetry.code"));
-
-    userId = this.getPreferences().get(ApplicationDefaults.TELEMETRY_USER_ID_KEY, UUID.randomUUID().toString());
-    this.getPreferences().put(ApplicationDefaults.TELEMETRY_USER_ID_KEY, userId);
-
-  }
-
-  public void event(String name) {
-    event(name, p -> { });
-  }
-
-  public void event(String name, Consumer<Map<String, String>> builder) {
-    if (!this.getPreferences().getBoolean(ApplicationDefaults.TELEMETRY_ENABLED_KEY, false)) {
-      return;
-    }
-    if (!allowedEvents.contains(name)) {
-      return;
+    public TelemetryService(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences) {
+        super(applicationDefaults, applicationPreferences);
     }
 
-    Thread.ofVirtual().start(() -> {
-      Map<String, String> params = new HashMap<>();
-      builder.accept(params);
+    @PostConstruct
+    private void initialize() {
+        mixpanel = new MixpanelAPI("https://api-eu.mixpanel.com/track", "https://api-eu.mixpanel.com/engage");
+        messageBuilder = new MessageBuilder(getApplicationDefaults().getEnvProperty("owlplug.telemetry.code"));
 
-      sanitize(params);
-      params.put("appVersion", this.getApplicationDefaults().getVersion());
-      params.put("systemTag", this.getApplicationDefaults().getRuntimePlatform().getTag());
-
-      send(name, params);
-    });
-
-  }
-
-  private void send(String name, Map<String, String> params) {
-    JSONObject props = new JSONObject(params);
-
-    // Create an event
-    JSONObject event = messageBuilder.event(userId, name, props);
-
-    ClientDelivery delivery = new ClientDelivery();
-    delivery.addMessage(event);
-
-    try {
-      mixpanel.deliver(delivery);
-    } catch (IOException e) {
-      // Exception can be ignored (Network connection lost, backend offline, ...)
-      log.debug("Telemetry event '{}' not sent: {}", name, e.getMessage());
+        userId = getApplicationPreferences().get(ApplicationDefaults.TELEMETRY_USER_ID_KEY, UUID.randomUUID().toString());
+        getApplicationPreferences().put(ApplicationDefaults.TELEMETRY_USER_ID_KEY, userId);
     }
-  }
 
-  private void sanitize(Map<String, String> params) {
-    for (Map.Entry<String, String> entry : params.entrySet()) {
-      String value = entry.getValue();
-      if (value.length() > MAX_PROPS_LENGTH) {
-        value = value.substring(0, MAX_PROPS_LENGTH) + "…";
-      }
-
-      // Redact absolute paths (Unix & Windows)
-      value = value.replaceAll("([A-Za-z]:\\\\\\\\[^\\s]+)|(/[^\\s]+)", "<path>");
-      entry.setValue(value);
-
+    public void event(String name) {
+        event(name, p -> {});
     }
-  }
+
+    public void event(String name, Consumer<Map<String, String>> builder) {
+        if (!getApplicationPreferences().getBoolean(ApplicationDefaults.TELEMETRY_ENABLED_KEY, false)) {
+            return;
+        }
+        if (!allowedEvents.contains(name)) {
+            return;
+        }
+
+        Thread.ofVirtual().start(() -> {
+            Map<String, String> params = new HashMap<>();
+            builder.accept(params);
+
+            sanitize(params);
+            params.put("appVersion", getApplicationDefaults().getVersion());
+            params.put("systemTag", getApplicationDefaults().getRuntimePlatform().getTag());
+
+            send(name, params);
+        });
+    }
+
+    private void send(String name, Map<String, String> params) {
+        JSONObject props = new JSONObject(params);
+
+        // Create an event
+        JSONObject event = messageBuilder.event(userId, name, props);
+
+        ClientDelivery delivery = new ClientDelivery();
+        delivery.addMessage(event);
+
+        try {
+            mixpanel.deliver(delivery);
+        } catch (IOException e) {
+            // Exception can be ignored (Network connection lost, backend offline, ...)
+            LOGGER.debug("Telemetry event '{}' not sent: {}", name, e.getMessage());
+        }
+    }
+
+    private void sanitize(Map<String, String> params) {
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            String value = entry.getValue();
+            if (value.length() > MAX_PROPS_LENGTH) {
+                value = value.substring(0, MAX_PROPS_LENGTH) + "…";
+            }
+
+            // Redact absolute paths (Unix & Windows)
+            value = value.replaceAll("([A-Za-z]:\\\\\\\\[^\\s]+)|(/[^\\s]+)", "<path>");
+            entry.setValue(value);
+
+        }
+    }
 
 }

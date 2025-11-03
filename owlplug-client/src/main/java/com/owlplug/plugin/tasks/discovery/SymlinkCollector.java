@@ -20,6 +20,9 @@ package com.owlplug.plugin.tasks.discovery;
 
 import com.owlplug.core.utils.FileUtils;
 import com.owlplug.plugin.model.Symlink;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,12 +31,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SymlinkCollector {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  private static final Logger LOGGER = LoggerFactory.getLogger(SymlinkCollector.class);
   
   private boolean uniqueReferences;
   private Set<String> collectedSymlinks;
@@ -59,7 +60,7 @@ public class SymlinkCollector {
             link.setTargetPath(com.owlplug.core.utils.FileUtils.convertPath(targetPath.toString()));
             link.setStale(!targetPath.toFile().exists());
           } catch (IOException e) {
-            log.error("Error reading symlink properties: " + file.getPath(), e);
+            LOGGER.error("Error reading symlink properties: " + file.getPath(), e);
           }
           if (uniqueReferences && !collectedSymlinks.contains(file.getAbsolutePath())) {
             collectedSymlinks.add(file.getAbsolutePath());

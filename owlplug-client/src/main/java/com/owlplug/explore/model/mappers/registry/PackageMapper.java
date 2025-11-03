@@ -19,36 +19,17 @@
 package com.owlplug.explore.model.mappers.registry;
 
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Map;
 
+@Getter
+@Setter
 public class PackageMapper {
 
-  private String slug;
-  private String latestVersion;
+    private String slug;
+    private String latestVersion;
+    private Map<String, PackageVersionMapper> versions;
 
-  private Map<String, PackageVersionMapper> versions;
-
-  public String getSlug() {
-    return slug;
-  }
-
-  public void setSlug(String slug) {
-    this.slug = slug;
-  }
-
-  public String getLatestVersion() {
-    return latestVersion;
-  }
-
-  public void setLatestVersion(String latestVersion) {
-    this.latestVersion = latestVersion;
-  }
-
-  public Map<String, PackageVersionMapper> getVersions() {
-    return versions;
-  }
-
-  public void setVersions(Map<String, PackageVersionMapper> versions) {
-    this.versions = versions;
-  }
 }

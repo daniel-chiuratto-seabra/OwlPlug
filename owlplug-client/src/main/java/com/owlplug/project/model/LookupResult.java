@@ -18,18 +18,18 @@
 
 package com.owlplug.project.model;
 
+import lombok.Getter;
+
+@Getter
 public enum LookupResult {
 
-  FOUND("Found"), MISSING("Missing");
+    FOUND("Found"),
+    MISSING("Missing");
 
-  private final String value;
+    private final String value;
 
-  LookupResult(String value) {
-    this.value = value;
-  }
-
-  public String getValue() {
-    return value;
-  }
+    LookupResult(final String value) {
+        this.value = value;
+    }
 
 }

@@ -15,70 +15,86 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.controllers.dialogs;
 
+import com.owlplug.controls.Dialog;
 import com.owlplug.controls.DialogLayout;
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.controllers.BaseController;
+import com.owlplug.core.services.TelemetryService;
 
 public abstract class AbstractDialogController extends BaseController {
-  
-  private double width = -1;
-  private double height = -1;
-  private boolean overlayClose = true;
 
-  public AbstractDialogController() {
+    private double width = -1;
+    private double height = -1;
 
-  }
+    private Dialog dialog;
 
-  /**
-   * Creates a new Dialog with fixed size.
-   * 
-   * @param width  dialog width
-   * @param height dialog height
-   */
-  public AbstractDialogController(double width, double height) {
-
-    this.width = width;
-    this.height = height;
-  }
-
-  protected abstract DialogLayout getLayout();
-
-  /**
-   * Open and display dialog frame.
-   */
-  public void show() {
-    onDialogShow();
-    if (width != -1 && height != -1) {
-      this.getDialogManager().newDialog(width, height, this.getLayout());
-    } else {
-      this.getDialogManager().newDialog(this.getLayout());
+    public AbstractDialogController(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                                    final TelemetryService telemetryService, final DialogManager dialogManager) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager);
     }
-    this.getDialogManager().getDialog().setOverlayClose(overlayClose);
-    this.getDialogManager().getDialog().show();
 
-  }
+    /**
+     * Creates a new Dialog with a fixed size.
+     *
+     * @param width  dialog width
+     * @param height dialog height
+     */
+    public AbstractDialogController(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                                    final TelemetryService telemetryService, final DialogManager dialogManager, final double width,
+                                    final double height) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager);
+        this.width = width;
+        this.height = height;
+    }
 
-  /**
-   * Close dialog frame.
-   */
-  public void close() {
-    onDialogClose();
-    this.getDialogManager().getDialog().close();
+    protected abstract DialogLayout getLayout();
 
-  }
+    /**
+     * Open and display dialog frame.
+     */
+    public void show() {
+        onDialogShow();
+        if (width != -1 && height != -1) {
+            dialog = getDialogManager().newDialog(width, height, getLayout());
+        } else {
+            dialog = getDialogManager().newDialog(getLayout());
+        }
 
-  protected void setOverlayClose(boolean overlayClose) {
-    this.overlayClose = overlayClose;
-  }
+        dialog.setOnDialogClosed(e -> {
+            onDialogClose();
+            dialog = null;
+        });
 
-  protected void onDialogShow() {
+        dialog.setOnDialogOpened(e -> onDialogShow());
 
-  }
+        dialog.setOverlayClose(true);
+        dialog.show();
+    }
 
-  protected void onDialogClose() {
+    /**
+     * Close dialog frame.
+     */
+    public void close() {
+        if (dialog != null) {
+            dialog.close();
+        }
+    }
 
-  }
+    protected void setOverlayClose(final boolean overlayClose) {
+        if (dialog != null) {
+            dialog.setOverlayClose(overlayClose);
+        }
+    }
+
+    protected void onDialogShow() {
+    }
+
+    protected void onDialogClose() {
+    }
 
 }

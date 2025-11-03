@@ -15,15 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.ui;
 
 import com.owlplug.core.components.ApplicationDefaults;
-import com.owlplug.plugin.model.IDirectory;
+import com.owlplug.plugin.model.Directory;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.PluginComponent;
 import com.owlplug.plugin.model.PluginDirectory;
-import com.owlplug.plugin.model.PluginState;
 import com.owlplug.plugin.model.Symlink;
 import com.owlplug.plugin.services.PluginService;
 import javafx.geometry.Pos;
@@ -35,122 +34,115 @@ import javafx.scene.layout.HBox;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import lombok.RequiredArgsConstructor;
 
+import static com.owlplug.plugin.ui.common.StyleClassSetter.setStyleClass;
+
+@RequiredArgsConstructor
 public class PluginTreeCell extends TreeCell<Object> {
 
-  private PluginService pluginService;
-  private ApplicationDefaults applicationDefaults;
+    private final ApplicationDefaults applicationDefaults;
+    private final PluginService pluginService;
 
-  public PluginTreeCell(ApplicationDefaults applicationDefaults, PluginService pluginService) {
-    this.applicationDefaults = applicationDefaults;
-    this.pluginService = pluginService;
-  }
+    @Override
+    public void updateItem(final Object item, final boolean empty) {
+        super.updateItem(item, empty);
 
+        if (empty || item == null) {
+            setText(null);
+            setGraphic(null);
+        } else {
+            switch (item) {
+                case Plugin plugin -> renderPlugin(plugin);
+                case PluginComponent pluginComponent -> renderComponent(pluginComponent);
+                case Directory directory -> renderDirectory(directory);
+                default -> {
+                    setText(item.toString());
+                    setGraphic(getTreeItem().getGraphic());
+                }
+            }
+        }
 
-  @Override
-  public void updateItem(Object item, boolean empty) {
-    super.updateItem(item, empty);
-
-    if (empty || item == null) {
-      setText(null);
-      setGraphic(null);
-    } else {
-      if (item instanceof Plugin) {
-        renderPlugin((Plugin) item);
-      } else if (item instanceof PluginComponent) {
-        renderComponent((PluginComponent) item);
-      } else if (item instanceof IDirectory) {
-        renderDirectory((IDirectory) item);
-      } else {
-        setText(item.toString());
-        setGraphic(getTreeItem().getGraphic());
-      }
-    }
-    
-    // Force the rendering immediately to avoid blinking nodes on the TreeView
-    // Blinking appears since JavaFX14 migration
-    this.applyCss();
-  }
-
-  private void renderPlugin(Plugin plugin) {
-    HBox hbox = new HBox(4);
-    hbox.setAlignment(Pos.CENTER_LEFT);
-    hbox.getChildren().add(new ImageView(applicationDefaults.getPluginFormatIcon(plugin.getFormat())));
-    hbox.getChildren().add(new Label(plugin.getName()));
-    Circle circle = new Circle(0, 0, 2);
-    hbox.getChildren().add(circle);
-
-    PluginState state = pluginService.getPluginState(plugin);
-    if (state.equals(PluginState.UNSTABLE)) {
-      circle.getStyleClass().add("shape-state-unstable");
-    } else if (state.equals(PluginState.ACTIVE)) {
-      circle.getStyleClass().add("shape-state-active");
-    } else if (state.equals(PluginState.DISABLED)) {
-      circle.getStyleClass().add("shape-state-disabled");
-    } else {
-      circle.getStyleClass().add("shape-state-installed");
+        // Force the rendering immediately to avoid blinking nodes on the TreeView
+        // Blinking appears since JavaFX14 migration
+        applyCss();
     }
 
-    circle.applyCss();
+    private void renderPlugin(final Plugin plugin) {
+        final var hbox = new HBox(4);
+        hbox.setAlignment(Pos.CENTER_LEFT);
+        hbox.getChildren().add(new ImageView(applicationDefaults.getPluginFormatIcon(plugin.getFormat())));
+        hbox.getChildren().add(new Label(plugin.getName()));
 
-    if (plugin.isDisabled()) {
-      Label label = new Label("(disabled)");
-      label.getStyleClass().add("label-disabled");
-      hbox.getChildren().add(label);
-    }
-    setGraphic(hbox);
-    setText(null);
-  }
+        final var circle = new Circle(0, 0, 2);
+        hbox.getChildren().add(circle);
 
+        final var pluginState = pluginService.getPluginState(plugin);
+        setStyleClass(pluginState, circle);
 
-  private void renderComponent(PluginComponent pluginComponent) {
-    Label label = new Label(pluginComponent.getName());
-    label.setGraphic(new ImageView(applicationDefaults.pluginComponentImage));
-    setGraphic(label);
-    setText(null);
-  }
+        circle.applyCss();
 
+        if (plugin.isDisabled()) {
+            final var label = new Label("(disabled)");
+            label.getStyleClass().add("label-disabled");
+            hbox.getChildren().add(label);
+        }
 
-  private void renderDirectory(IDirectory dir) {
-    TextFlow textFlow = new TextFlow();
-    Text directoryName;
-
-    if (dir.getDisplayName() != null && !dir.getName().equals(dir.getDisplayName())) {
-      String preText = dir.getDisplayName().replaceAll("/" + dir.getName() + "$", "");
-      Text pre = new Text(preText);
-      pre.getStyleClass().add("text-disabled");
-      textFlow.getChildren().add(pre);
-      directoryName = new Text("/" + dir.getName());
-
-    } else {
-      directoryName = new Text(dir.getName());
+        setGraphic(hbox);
+        setText(null);
     }
 
-    if (dir.isStale()) {
-      directoryName.getStyleClass().add("text-danger");
-      directoryName.setText(dir.getName() + " (Stale)");
+
+    private void renderComponent(final PluginComponent pluginComponent) {
+        Label label = new Label(pluginComponent.getName());
+        label.setGraphic(new ImageView(applicationDefaults.pluginComponentImage));
+        setGraphic(label);
+        setText(null);
     }
 
-    textFlow.getChildren().add(directoryName);
 
-    Node icon;
-    if (dir instanceof Symlink) {
-      icon = new ImageView(applicationDefaults.symlinkImage);
-    } else if (dir instanceof PluginDirectory pluginDirectory) {
-      if (pluginDirectory.isRootDirectory()) {
-        icon = new ImageView(applicationDefaults.scanDirectoryImage);
-      } else {
-        icon = new ImageView(applicationDefaults.directoryImage);
-      }
-    } else {
-      icon = new ImageView(applicationDefaults.directoryImage);
+    private void renderDirectory(Directory dir) {
+        final var textFlow = new TextFlow();
+        Text directoryName;
+
+        if (dir.getDisplayName() != null && !dir.getName().equals(dir.getDisplayName())) {
+            String preText = dir.getDisplayName().replaceAll("/" + dir.getName() + "$", "");
+            Text pre = new Text(preText);
+            pre.getStyleClass().add("text-disabled");
+            textFlow.getChildren().add(pre);
+            directoryName = new Text("/" + dir.getName());
+
+        } else {
+            directoryName = new Text(dir.getName());
+        }
+
+        if (dir.isStale()) {
+            directoryName.getStyleClass().add("text-danger");
+            directoryName.setText(dir.getName() + " (Stale)");
+        }
+
+        textFlow.getChildren().add(directoryName);
+
+        Node icon = getIconNode(dir);
+        HBox hbox = new HBox(5);
+        hbox.getChildren().add(icon);
+        hbox.getChildren().add(textFlow);
+
+        setGraphic(hbox);
+        setText(null);
     }
-    HBox hbox = new HBox(5);
-    hbox.getChildren().add(icon);
-    hbox.getChildren().add(textFlow);
 
-    setGraphic(hbox);
-    setText(null);
-  }
+    private Node getIconNode(final Directory directory) {
+        if (directory instanceof Symlink) {
+            return new ImageView(applicationDefaults.symlinkImage);
+        } else if (directory instanceof PluginDirectory pluginDirectory) {
+            if (pluginDirectory.isRootDirectory()) {
+                return new ImageView(applicationDefaults.scanDirectoryImage);
+            } else {
+                return new ImageView(applicationDefaults.directoryImage);
+            }
+        }
+        return new ImageView(applicationDefaults.directoryImage);
+    }
 
 }

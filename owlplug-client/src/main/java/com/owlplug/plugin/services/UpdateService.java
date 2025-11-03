@@ -15,9 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.services;
 
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
 import com.owlplug.core.model.json.RemoteVersion;
 import com.owlplug.core.services.BaseService;
 import com.vdurmont.semver4j.Semver;
@@ -30,44 +32,45 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class UpdateService extends BaseService {
 
-  
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(UpdateService.class);
 
-  /**
-   * Returns application update status based on OwlPlug Hub remote version.
-   * @return true if app is up-to-date, false otherwise
-   */
-  public boolean isUpToDate() {
-    
-    String remoteVersion = getLastVersion();
-    
-    if (remoteVersion != null) {
-      Semver remoteSemver = new Semver(remoteVersion);
-      Semver currentSemver = new Semver(this.getApplicationDefaults().getVersion());
-      return remoteSemver.isLowerThanOrEqualTo(currentSemver);
-
-    }
-    return true;
-
-  }
-  
-  private String getLastVersion() {
-    RestTemplate restTemplate = new RestTemplate();
-    RemoteVersion remoteVersion = null;
-    try {
-      remoteVersion = restTemplate.getForObject(this.getApplicationDefaults().getOwlPlugHubUrl() 
-          + "/releases/latest/version.json", RemoteVersion.class);
-    } catch (RestClientException e) {
-      log.error("Error retrieving latest owlplug version", e);
+    public UpdateService(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences) {
+        super(applicationDefaults, applicationPreferences);
     }
 
-    if (remoteVersion != null) {
-      return remoteVersion.version;
+    /**
+     * Returns application update status based on OwlPlug Hub remote version.
+     *
+     * @return true if the app is up to date, false otherwise
+     */
+    public boolean isUpToDate() {
+        String remoteVersion = getLastVersion();
+
+        if (remoteVersion != null) {
+            Semver remoteSemver = new Semver(remoteVersion);
+            Semver currentSemver = new Semver(this.getApplicationDefaults().getVersion());
+            return remoteSemver.isLowerThanOrEqualTo(currentSemver);
+
+        }
+        return true;
+    }
+
+    private String getLastVersion() {
+        RestTemplate restTemplate = new RestTemplate();
+        RemoteVersion remoteVersion = null;
+        try {
+            remoteVersion = restTemplate.getForObject("%s/releases/latest/version.json"
+                    .formatted(getApplicationDefaults().getOwlPlugHubUrl()), RemoteVersion.class);
+        } catch (final RestClientException e) {
+            LOGGER.error("Error retrieving latest owlplug version", e);
+        }
+
+        if (remoteVersion != null) {
+            return remoteVersion.version;
+
+        }
+        return null;
 
     }
-    return null;
-    
-  }
- 
+
 }
-

@@ -29,53 +29,31 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
+@Getter
+@Setter
 @Entity
+@ToString
+@EqualsAndHashCode
 public class DawPluginLookup {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private long id;
 
-  @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "daw_plugin_id", referencedColumnName = "id")
-  private DawPlugin dawPlugin;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "daw_plugin_id", referencedColumnName = "id")
+    private DawPlugin dawPlugin;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "plugin_id")
-  private Plugin plugin;
-  @Enumerated(EnumType.STRING)
-  private LookupResult result;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plugin_id")
+    private Plugin plugin;
 
-  public long getId() {
-    return id;
-  }
+    @Enumerated(EnumType.STRING)
+    private LookupResult result;
 
-  public void setId(long id) {
-    this.id = id;
-  }
-
-  public DawPlugin getDawPlugin() {
-    return dawPlugin;
-  }
-
-  public void setDawPlugin(DawPlugin dawPlugin) {
-    this.dawPlugin = dawPlugin;
-  }
-
-  public Plugin getPlugin() {
-    return plugin;
-  }
-
-  public void setPlugin(Plugin plugin) {
-    this.plugin = plugin;
-  }
-
-  public LookupResult getResult() {
-    return result;
-  }
-
-  public void setResult(LookupResult result) {
-    this.result = result;
-  }
 }

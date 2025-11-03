@@ -24,43 +24,41 @@ import com.owlplug.core.tasks.TaskResult;
 import com.owlplug.project.model.DawPlugin;
 import com.owlplug.project.repositories.DawPluginRepository;
 import com.owlplug.project.services.PluginLookupService;
+
 import java.text.DecimalFormat;
 
 public class PluginLookupTask extends AbstractTask {
 
-  private PluginLookupService pluginLookupService;
-  private DawPluginRepository dawPluginRepository;
+    private final PluginLookupService pluginLookupService;
+    private final DawPluginRepository dawPluginRepository;
 
-  public PluginLookupTask(DawPluginRepository dawPluginRepository, PluginLookupService pluginLookupService) {
-    this.dawPluginRepository = dawPluginRepository;
-    this.pluginLookupService = pluginLookupService;
-    setName("Lookup DAW Plugins");
-  }
-
-
-  @Override
-  protected TaskResult start() throws Exception {
-
-    this.updateMessage("Starting project plugins lookup task");
-    this.updateProgress(0,1);
-
-    pluginLookupService.deleteAllLookups();
-    Iterable<DawPlugin> plugins = dawPluginRepository.findAll();
-
-    this.setMaxProgress(Iterables.size(plugins));
-    for (DawPlugin plugin : plugins) {
-      pluginLookupService.createLookup(plugin);
-      this.commitProgress(1);
-      this.updateMessage("Resolving plugin references from projects ("
-                             + new DecimalFormat("#").format(getCommittedProgress())
-                             + "/"
-                             + new DecimalFormat("#").format(getMaxProgress())
-                             + ")");
+    public PluginLookupTask(final DawPluginRepository dawPluginRepository, final PluginLookupService pluginLookupService) {
+        this.dawPluginRepository = dawPluginRepository;
+        this.pluginLookupService = pluginLookupService;
+        setName("Lookup DAW Plugins");
     }
 
-    this.updateMessage("All projects and plugins are up-to-date");
-    this.updateProgress(1,1);
+    @Override
+    protected TaskResult start() throws Exception {
 
-    return success();
-  }
+        updateMessage("Starting project plugins lookup task");
+        updateProgress(0, 1);
+
+        pluginLookupService.deleteAllLookups();
+        Iterable<DawPlugin> plugins = dawPluginRepository.findAll();
+
+        setMaxProgress(Iterables.size(plugins));
+        plugins.forEach(dawPlugin -> {
+            pluginLookupService.createLookup(dawPlugin);
+            commitProgress(1);
+            updateMessage("Resolving plugin references from projects (%s/%s)"
+                    .formatted(new DecimalFormat("#").format(getCommittedProgress()),
+                            new DecimalFormat("#").format(getMaxProgress())));
+        });
+
+        updateMessage("All projects and plugins are up-to-date");
+        updateProgress(1, 1);
+
+        return success();
+    }
 }

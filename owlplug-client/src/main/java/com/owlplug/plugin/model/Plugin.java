@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.model;
 
 import com.owlplug.project.model.DawPluginLookup;
@@ -33,208 +33,110 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.util.HashSet;
-import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Inheritance
-@Table(indexes = { @Index(name = "IDX_PLUGIN_ID", columnList = "id"),
-    @Index(name = "IDX_PLUGIN_NAME", columnList = "name") })
+@Table(indexes = {@Index(name = "IDX_PLUGIN_ID", columnList = "id"),
+        @Index(name = "IDX_PLUGIN_NAME", columnList = "name")})
 public class Plugin {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
+    @Id
+    @Getter
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-  protected String name;
-  protected String descriptiveName;
-  protected String uid;
-  protected String category;
-  protected String manufacturerName;
-  protected String identifier;
-  protected String path;
-  protected String scanDirectoryPath;
-  protected String bundleId;
-  protected String version;
+    @Getter
+    @Setter
+    protected String name;
 
-  // Suggestion: could be renamed to screenshotURI
-  protected String screenshotUrl;
-  protected boolean nativeCompatible = false;
-  protected boolean syncComplete = false;
-  @Column(columnDefinition = "boolean default false")
-  protected boolean disabled = false;
+    @Getter
+    @Setter
+    protected String descriptiveName;
 
-  @Enumerated(EnumType.STRING)
-  protected PluginFormat format;
-  @Enumerated(EnumType.STRING)
-  protected PluginType type;
-  @OneToOne
-  protected PluginFootprint footprint;
+    @Getter
+    @Setter
+    protected String uid;
 
-  @OneToMany(mappedBy = "plugin", orphanRemoval = true,
-      fetch = FetchType.EAGER, cascade = { CascadeType.ALL })
-  private Set<PluginComponent> components = new HashSet<>();
+    @Getter
+    @Setter
+    protected String category;
 
-  @OneToMany(mappedBy = "plugin")
-  @OnDelete(action = OnDeleteAction.CASCADE)
-  private Set<DawPluginLookup> lookups;
+    @Getter
+    @Setter
+    protected String manufacturerName;
 
-  public Plugin() {
+    @Getter
+    @Setter
+    protected String identifier;
 
-  }
+    @Getter
+    @Setter
+    protected String path;
 
-  public Long getId() {
-    return id;
-  }
+    @Getter
+    @Setter
+    protected String scanDirectoryPath;
 
-  public String getName() {
-    return name;
-  }
+    @Getter
+    @Setter
+    protected String bundleId;
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    @Getter
+    @Setter
+    protected String version;
 
-  public String getPath() {
-    return path;
-  }
+    // Suggestion: could be renamed to screenshotURI
+    @Getter
+    @Setter
+    protected String screenshotUrl;
 
-  public void setPath(String path) {
-    this.path = path;
-  }
+    @Getter
+    @Setter
+    protected boolean nativeCompatible = false;
 
-  public String getScanDirectoryPath() {
-    return scanDirectoryPath;
-  }
+    @Getter
+    @Setter
+    protected boolean syncComplete = false;
 
-  public void setScanDirectoryPath(String scanDirectoryPath) {
-    this.scanDirectoryPath = scanDirectoryPath;
-  }
+    @Getter
+    @Setter
+    @Column(columnDefinition = "boolean default false")
+    protected boolean disabled = false;
 
-  public String getBundleId() {
-    return bundleId;
-  }
+    @Getter
+    @Setter
+    @Enumerated(EnumType.STRING)
+    protected PluginFormat format;
 
-  public void setBundleId(String bundleId) {
-    this.bundleId = bundleId;
-  }
+    @Getter
+    @Setter
+    @Enumerated(EnumType.STRING)
+    protected PluginType type;
 
-  public String getVersion() {
-    return version;
-  }
+    @Getter
+    @Setter
+    @OneToOne
+    protected PluginFootprint footprint;
 
-  public void setVersion(String version) {
-    this.version = version;
-  }
+    @Getter
+    @Setter
+    @OneToMany(mappedBy = "plugin", orphanRemoval = true, fetch = FetchType.EAGER, cascade = {CascadeType.ALL})
+    private Set<PluginComponent> components = new HashSet<>();
 
-  public String getScreenshotUrl() {
-    return screenshotUrl;
-  }
+    @OneToMany(mappedBy = "plugin")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Set<DawPluginLookup> lookups;
 
-  public void setScreenshotUrl(String screenshotUrl) {
-    this.screenshotUrl = screenshotUrl;
-  }
+    @Override
+    public String toString() {
+        return name;
+    }
 
-  public String getDescriptiveName() {
-    return descriptiveName;
-  }
-
-  public void setDescriptiveName(String descriptiveName) {
-    this.descriptiveName = descriptiveName;
-  }
-
-  public String getUid() {
-    return uid;
-  }
-
-  public void setUid(String uid) {
-    this.uid = uid;
-  }
-
-  public String getCategory() {
-    return category;
-  }
-
-  public void setCategory(String category) {
-    this.category = category;
-  }
-
-  public String getManufacturerName() {
-    return manufacturerName;
-  }
-
-  public void setManufacturerName(String manufacturerName) {
-    this.manufacturerName = manufacturerName;
-  }
-
-  public String getIdentifier() {
-    return identifier;
-  }
-
-  public void setIdentifier(String identifier) {
-    this.identifier = identifier;
-  }
-
-  public PluginType getType() {
-    return type;
-  }
-
-  public void setType(PluginType type) {
-    this.type = type;
-  }
-
-  public PluginFormat getFormat() {
-    return format;
-  }
-
-  public void setFormat(PluginFormat format) {
-    this.format = format;
-  }
-
-  public boolean isNativeCompatible() {
-    return nativeCompatible;
-  }
-
-  public void setNativeCompatible(boolean nativeCompatible) {
-    this.nativeCompatible = nativeCompatible;
-  }
-
-  public PluginFootprint getFootprint() {
-    return footprint;
-  }
-
-  public void setFootprint(PluginFootprint footprint) {
-    this.footprint = footprint;
-  }
-  
-  public boolean isSyncComplete() {
-    return syncComplete;
-  }
-
-  public void setSyncComplete(boolean syncComplete) {
-    this.syncComplete = syncComplete;
-  }
-
-  public boolean isDisabled() {
-    return disabled;
-  }
-
-  public void setDisabled(boolean disabled) {
-    this.disabled = disabled;
-  }
-
-  @Override
-  public String toString() {
-    return name;
-  }
-
-  public Set<PluginComponent> getComponents() {
-    return components;
-  }
-
-  public void setComponents(Set<PluginComponent> components) {
-    this.components = components;
-  }
 }

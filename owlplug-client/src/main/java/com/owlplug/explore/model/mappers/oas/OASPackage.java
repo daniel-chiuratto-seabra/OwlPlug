@@ -18,35 +18,21 @@
 
 package com.owlplug.explore.model.mappers.oas;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.util.Map;
 
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+@NoArgsConstructor
 public class OASPackage {
-
-  private String slug;
-  private String version;
-  private Map<String, OASPlugin> versions;
-
-  public String getSlug() {
-    return slug;
-  }
-
-  public void setSlug(String slug) {
-    this.slug = slug;
-  }
-
-  public String getVersion() {
-    return version;
-  }
-
-  public void setVersion(String version) {
-    this.version = version;
-  }
-
-  public Map<String, OASPlugin> getVersions() {
-    return versions;
-  }
-
-  public void setVersions(Map<String, OASPlugin> versions) {
-    this.versions = versions;
-  }
+    private String slug;
+    private String version;
+    private Map<String, OASPlugin> versions;
 }
