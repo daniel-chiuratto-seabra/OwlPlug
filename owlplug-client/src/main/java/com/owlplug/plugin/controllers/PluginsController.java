@@ -26,12 +26,12 @@ import com.owlplug.core.services.TelemetryService;
 import com.owlplug.plugin.components.PluginTaskFactory;
 import com.owlplug.plugin.controllers.dialogs.ExportDialogController;
 import com.owlplug.plugin.controllers.dialogs.NewLinkController;
-import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.repositories.PluginRepository;
 import com.owlplug.plugin.services.PluginService;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
@@ -59,7 +59,8 @@ public class PluginsController extends BaseController implements Initializable {
     protected final PluginTreeViewController pluginTreeViewController;
     protected final PluginTableController tableController;
 
-    @FXML private Button syncButton;
+    @FXML private Button scanButton;
+    @FXML private MenuItem fullScanMenuItem;
     @FXML private Button exportButton;
     @FXML private TabPane displaySwitchTabPane;
     @FXML private Tab displayListTab;
@@ -185,12 +186,17 @@ public class PluginsController extends BaseController implements Initializable {
             displaySwitchTabPane.getSelectionModel().select(displayListTab);
         }
 
-        syncButton.setOnAction(e -> {
+        scanButton.setOnAction(e -> {
             getTelemetryService().event("/Plugins/Scan");
-            pluginService.syncPlugins();
+            pluginService.scanPlugins();
         });
 
-        pluginTaskFactory.addSyncPluginsListener(this::displayPlugins);
+        fullScanMenuItem.setOnAction(e -> {
+            getTelemetryService().event("/Plugins/FullScan");
+            pluginService.scanPlugins(false);
+        });
+
+        pluginTaskFactory.addScanPluginsListener(this::displayPlugins);
 
         exportButton.setOnAction(e -> {
             getTelemetryService().event("/Plugins/Export");

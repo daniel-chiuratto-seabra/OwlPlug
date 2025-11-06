@@ -90,7 +90,7 @@ public class SymlinkInfoController extends BaseController {
             removeButton.setOnAction(removeEvent -> {
                 dialog.close();
                 pluginTaskFactory.create(new SymlinkRemoveTask(symlink))
-                        .setOnSucceeded(x -> pluginTaskFactory.createPluginSyncTask().scheduleNow()).schedule();
+                        .setOnSucceeded(x -> pluginTaskFactory.createPluginScanTask().scheduleNow()).schedule();
             });
             removeButton.getStyleClass().add("button-danger");
 

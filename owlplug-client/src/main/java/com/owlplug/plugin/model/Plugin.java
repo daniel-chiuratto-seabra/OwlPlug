@@ -103,7 +103,7 @@ public class Plugin {
 
     @Getter
     @Setter
-    protected boolean syncComplete = false;
+    protected boolean scanComplete = false;
 
     @Getter
     @Setter

@@ -77,11 +77,14 @@ public class ExploreTaskFactory extends BaseTaskFactory {
     public TaskExecutionContext createBundleInstallTask(PackageBundle bundle, File targetDirectory) {
         final var path = FileUtils.convertPath(targetDirectory.getAbsolutePath());
         return create(new BundleInstallTask(bundle, targetDirectory, applicationDefaults))
-                .setOnSucceeded(e -> pluginTaskFactory.createPluginSyncTask(path).scheduleNow());
+                .setOnSucceeded(e -> pluginTaskFactory.createPluginScanTask(path).scheduleNow());
     }
 
     public void addSyncSourcesListener(SimpleEventListener eventListener) {
         syncSourcesListeners.add(eventListener);
     }
 
+    public void removeSyncSourcesListener(SimpleEventListener eventListener) {
+        syncSourcesListeners.remove(eventListener);
+    }
 }

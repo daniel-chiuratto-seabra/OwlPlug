@@ -59,12 +59,12 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
     private static final String DEFAULT_SCANNER_VERSION = ClassPathVersionUtils.getVersionSafe(DEFAULT_SCANNER_NAME);
     private static final String DEFAULT_SCANNER_EXT = getPlatformExecutableExtension();
     private static final String DEFAULT_SCANNER_PLATFORM_TAG = getPlatformTagName();
-    private static final String DEFAULT_SCANNER_ID =
-            DEFAULT_SCANNER_NAME + "-" + DEFAULT_SCANNER_VERSION + "-" + DEFAULT_SCANNER_PLATFORM_TAG + DEFAULT_SCANNER_EXT;
+    private static final String DEFAULT_SCANNER_ID = "%s-%s-%s%s".formatted(DEFAULT_SCANNER_NAME, DEFAULT_SCANNER_VERSION,
+            DEFAULT_SCANNER_PLATFORM_TAG, DEFAULT_SCANNER_EXT);
 
     private boolean available = false;
-    private String scannerDirectory;
-    private String scannerId;
+    private final String scannerDirectory;
+    private final String scannerId;
 
     public static EmbeddedScannerPluginLoader getInstance() {
         if (INSTANCE == null) {
@@ -78,16 +78,6 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
         scannerId = DEFAULT_SCANNER_ID;
     }
 
-    public EmbeddedScannerPluginLoader usingScannerPath(String path) {
-        this.scannerDirectory = path;
-        return this;
-    }
-
-    public EmbeddedScannerPluginLoader usingScannerId(String scannerId) {
-        this.scannerId = scannerId;
-        return this;
-    }
-
     @Override
     public void init() {
 
@@ -97,7 +87,7 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
             try {
                 ClassPathFileExtractor.extract(this.getClass(), DEFAULT_SCANNER_ID, scannerFile);
             } catch (IOException e) {
-                LOGGER.error("Scanner executable can't be extracted to " + scannerFile.getAbsolutePath());
+                LOGGER.error("Scanner executable can't be extracted to {}", scannerFile.getAbsolutePath());
             }
         }
 
@@ -137,7 +127,7 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
         try {
             CommandRunner commandRunner = new CommandRunner();
             commandRunner.setTimeoutActivated(true);
-            commandRunner.setTimeout(30000); // 30 seconds timeout
+            commandRunner.setTimeout(30000); // 30-second timeout
             CommandResult result = commandRunner.run(scannerDirectory + SEPARATOR + scannerId, path);
             LOGGER.debug("Response received from scanner");
             LOGGER.debug(result.getOutput());
@@ -172,17 +162,17 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
             for (int i = 0; i < componentOutputs.length; i++) {
 
                 if (componentOutputs[i].contains("<?xml")) {
-                    // Remove content before xml tag in case plugin logged stuff in the stdout.
+                    // Remove content before XML tag in case plugin logged stuff in the stdout.
                     String outputXML = componentOutputs[i].substring(componentOutputs[i].indexOf("<?xml"));
 
-                    // Remove everything after the end delimiter in case plugin logged stuff in the stdout
+                    // Remove everything after the end delimiter in case the plugin logged stuff in the stdout
                     if (outputXML.contains(PLUGIN_COMPONENT_OUTPUT_DELIMITER_END)) {
                         outputXML = outputXML.substring(0, outputXML.indexOf(PLUGIN_COMPONENT_OUTPUT_DELIMITER_END));
                     }
 
                     outputXML = outputXML.strip();
 
-                    JuceXMLPlugin plugin = createJucePluginFromRawXml(outputXML);
+                    JuceXMLPlugin plugin = createJUCEPluginFromRawXml(outputXML);
                     if (plugin != null) {
                         plugins.add(plugin.toNativePlugin());
                     }
@@ -201,7 +191,7 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
         return plugins;
     }
 
-    private JuceXMLPlugin createJucePluginFromRawXml(String xml) {
+    private JuceXMLPlugin createJUCEPluginFromRawXml(String xml) {
         LOGGER.debug("Create plugin from raw XML");
         LOGGER.debug(xml);
 

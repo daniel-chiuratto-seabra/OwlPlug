@@ -14,6 +14,8 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.Pane?>
 
+<?import javafx.scene.control.MenuButton?>
+<?import javafx.scene.control.MenuItem?>
 <BorderPane xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.owlplug.plugin.controllers.PluginsController">
     <top>
         <HBox alignment="CENTER_LEFT" prefHeight="40.0" spacing="5">
@@ -25,7 +27,7 @@
             </Button>
             <TextField fx:id="searchTextField" prefHeight="27.0" prefWidth="170.0" promptText="Search"
                        HBox.hgrow="ALWAYS"/>
-            <!--Fixed size pane, to align search box, can be replaced by a V-grow property-->
+            <!--Fixed size pane to align search box, can be replaced by a V-grow property-->
             <Pane prefWidth="365.0" />
             <Button fx:id="exportButton" text="Export">
                 <graphic>
@@ -34,48 +36,55 @@
                     </ImageView>
                 </graphic>
             </Button>
-            <Button fx:id="syncButton" text="Sync">
-                <graphic>
-                    <ImageView fitHeight="16.0" fitWidth="16.0" pickOnBounds="true" preserveRatio="true">
-                        <Image url="@../icons/refresh-white-16.png"/>
-                    </ImageView>
-                </graphic>
-            </Button>
+            <HBox alignment="CENTER_LEFT">
+                <Button fx:id="scanButton" text="Scan">
+                    <graphic>
+                        <ImageView fitHeight="16.0" fitWidth="16.0" pickOnBounds="true" preserveRatio="true">
+                            <Image url="@../icons/refresh-white-16.png"/>
+                        </ImageView>
+                    </graphic>
+                </Button>
+                <MenuButton prefHeight="28" popupSide="LEFT">
+                    <items>
+                        <MenuItem fx:id="fullScanMenuItem" text="Full Scan" />
+                    </items>
+                </MenuButton>
+            </HBox>
         </HBox>
     </top>
     <center>
-      <BorderPane BorderPane.alignment="CENTER">
-      	<center>
-            <VBox fx:id="pluginsContainer">
-            </VBox>
-      	</center>
-      	<left>
-            <VBox styleClass="small-tab-pane-container">
-                <TabPane fx:id="displaySwitchTabPane" prefHeight="289.0" prefWidth="37.0" side="LEFT"
-                         styleClass="small-tab-pane" BorderPane.alignment="CENTER">
-                    <Tab fx:id="displayListTab" text="List" closable="false"/>
-                    <Tab fx:id="displayDirectoriesTab" text="Directories" closable="false"/>
-                    <Tab fx:id="displayTableTab" text="Table" closable="false"/>
-                </TabPane>
-            </VBox>
-      	</left>
-      </BorderPane>
-   </center>
-   <right>
-       <VBox fx:id="pluginInfoPane" prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
-           <padding>
-               <Insets left="20.0"/>
-           </padding>
-           <AnchorPane VBox.vgrow="ALWAYS">
-               <fx:include source="NodeInfoView.fxml" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-                           AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
-           </AnchorPane>
-       </VBox>
-   </right>
-   <padding>
-      <Insets bottom="10.0" left="20.0" right="20.0" top="2.0" />
-   </padding>
-   <bottom>
-		<VBox minHeight="5.0" prefHeight="5.0" prefWidth="537.0" BorderPane.alignment="CENTER" />
-   </bottom>
+        <BorderPane BorderPane.alignment="CENTER">
+            <center>
+                <VBox fx:id="pluginsContainer">
+                </VBox>
+            </center>
+            <left>
+                <VBox styleClass="small-tab-pane-container">
+                    <TabPane fx:id="displaySwitchTabPane" prefHeight="289.0" prefWidth="37.0" side="LEFT"
+                             styleClass="small-tab-pane" BorderPane.alignment="CENTER">
+                        <Tab fx:id="displayListTab" text="List" closable="false"/>
+                        <Tab fx:id="displayDirectoriesTab" text="Directories" closable="false"/>
+                        <Tab fx:id="displayTableTab" text="Table" closable="false"/>
+                    </TabPane>
+                </VBox>
+            </left>
+        </BorderPane>
+    </center>
+    <right>
+        <VBox fx:id="pluginInfoPane" prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets left="20.0"/>
+            </padding>
+            <AnchorPane VBox.vgrow="ALWAYS">
+                <fx:include source="NodeInfoView.fxml" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                            AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+            </AnchorPane>
+        </VBox>
+    </right>
+    <padding>
+        <Insets bottom="10.0" left="20.0" right="20.0" top="2.0" />
+    </padding>
+    <bottom>
+        <VBox minHeight="5.0" prefHeight="5.0" prefWidth="537.0" BorderPane.alignment="CENTER" />
+    </bottom>
 </BorderPane>

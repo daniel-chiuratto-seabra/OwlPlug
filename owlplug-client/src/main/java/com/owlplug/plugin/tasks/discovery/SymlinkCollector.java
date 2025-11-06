@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.tasks.discovery;
 
 import com.owlplug.core.utils.FileUtils;
@@ -34,46 +34,45 @@ import java.util.Set;
 
 public class SymlinkCollector {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SymlinkCollector.class);
-  
-  private boolean uniqueReferences;
-  private Set<String> collectedSymlinks;
+    private static final Logger LOGGER = LoggerFactory.getLogger(SymlinkCollector.class);
 
-  public SymlinkCollector(boolean uniqueReferences) {
-    this.uniqueReferences = uniqueReferences;
-    collectedSymlinks = new HashSet<>();
-  }
+    private final boolean uniqueReferences;
+    private final Set<String> collectedSymlinks;
 
-  public List<Symlink> collect(String directoryPath) {
-
-    File dir = new File(directoryPath);
-    ArrayList<Symlink> linkList = new ArrayList<>();
-    if (dir.isDirectory()) {
-      List<File> baseFiles = (List<File>) FileUtils.listUniqueFilesAndDirs(dir);
-
-      for (File file : baseFiles) {
-        if (Files.isSymbolicLink(file.toPath())) {
-          Symlink link = new Symlink(FileUtils.convertPath(file.getAbsolutePath()), file.getName(), true);
-          Path targetPath;
-          try {
-            targetPath = Files.readSymbolicLink(file.toPath());
-            link.setTargetPath(com.owlplug.core.utils.FileUtils.convertPath(targetPath.toString()));
-            link.setStale(!targetPath.toFile().exists());
-          } catch (IOException e) {
-            LOGGER.error("Error reading symlink properties: " + file.getPath(), e);
-          }
-          if (uniqueReferences && !collectedSymlinks.contains(file.getAbsolutePath())) {
-            collectedSymlinks.add(file.getAbsolutePath());
-            linkList.add(link);
-          } else if (!uniqueReferences) {
-            linkList.add(link);
-          }
-
-        }
-      }
+    public SymlinkCollector(final boolean uniqueReferences) {
+        this.uniqueReferences = uniqueReferences;
+        this.collectedSymlinks = new HashSet<>();
     }
 
-    return linkList;
-  }
+    public List<Symlink> collect(final String directoryPath) {
+        File dir = new File(directoryPath);
+        ArrayList<Symlink> linkList = new ArrayList<>();
+        if (dir.isDirectory()) {
+            List<File> baseFiles = (List<File>) FileUtils.listUniqueFilesAndDirs(dir);
+
+            for (File file : baseFiles) {
+                if (Files.isSymbolicLink(file.toPath())) {
+                    Symlink link = new Symlink(FileUtils.convertPath(file.getAbsolutePath()), file.getName(), true);
+                    Path targetPath;
+                    try {
+                        targetPath = Files.readSymbolicLink(file.toPath());
+                        link.setTargetPath(com.owlplug.core.utils.FileUtils.convertPath(targetPath.toString()));
+                        link.setStale(!targetPath.toFile().exists());
+                    } catch (IOException e) {
+                        LOGGER.error("Error reading symlink properties: {}", file.getPath(), e);
+                    }
+                    if (uniqueReferences && !collectedSymlinks.contains(file.getAbsolutePath())) {
+                        collectedSymlinks.add(file.getAbsolutePath());
+                        linkList.add(link);
+                    } else if (!uniqueReferences) {
+                        linkList.add(link);
+                    }
+
+                }
+            }
+        }
+
+        return linkList;
+    }
 
 }

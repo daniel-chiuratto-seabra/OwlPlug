@@ -44,6 +44,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+
 @Service
 public class PluginService extends BaseService {
 
@@ -64,8 +67,12 @@ public class PluginService extends BaseService {
         this.pluginTaskFactory = pluginTaskFactory;
     }
 
-    public void syncPlugins() {
-        pluginTaskFactory.createPluginSyncTask().schedule();
+    public void scanPlugins() {
+        scanPlugins(pluginRepository.count() > 0);
+    }
+
+    public void scanPlugins(final boolean incremental) {
+        pluginTaskFactory.createPluginScanTask(incremental).scheduleNow();
     }
 
     public void syncFiles() {
@@ -115,7 +122,7 @@ public class PluginService extends BaseService {
         if (plugin.getFootprint() == null) {
             throw new IllegalArgumentException("Plugin footprint cannot be null");
         }
-        String url = this.resolveImageUrl(plugin);
+        String url = resolveImageUrl(plugin);
         if (url != null) {
             plugin.getFootprint().setScreenshotUrl(url);
             pluginFootprintRepository.save(plugin.getFootprint());
@@ -160,7 +167,7 @@ public class PluginService extends BaseService {
 
     public PluginState getPluginState(Plugin plugin) {
 
-        if (!plugin.isSyncComplete()) {
+        if (!plugin.isScanComplete()) {
             return PluginState.UNSTABLE;
         }
         if (plugin.isDisabled()) {
@@ -189,24 +196,18 @@ public class PluginService extends BaseService {
     }
 
     /**
-     * Get the primary plugin path defined in preferences based on the plugin format.
+     * Get the primary plugin path defined in preferences based on the plugin pluginFormat.
      *
-     * @param format plugin format
+     * @param pluginFormat plugin pluginFormat
      * @return the directory path
      */
-    public String getPrimaryPluginPathByFormat(PluginFormat format) {
-
-        if (PluginFormat.VST2.equals(format)) {
-            return this.getApplicationPreferences().get(ApplicationDefaults.VST_DIRECTORY_KEY, "");
-        } else if (PluginFormat.VST3.equals(format)) {
-            return this.getApplicationPreferences().get(ApplicationDefaults.VST3_DIRECTORY_KEY, "");
-        } else if (PluginFormat.AU.equals(format)) {
-            return this.getApplicationPreferences().get(ApplicationDefaults.AU_DIRECTORY_KEY, "");
-        } else if (PluginFormat.LV2.equals(format)) {
-            return this.getApplicationPreferences().get(ApplicationDefaults.LV2_DIRECTORY_KEY, "");
-        }
-
-        return this.getApplicationPreferences().get(ApplicationDefaults.VST_DIRECTORY_KEY, "");
+    public String getPrimaryPluginPathByFormat(final PluginFormat pluginFormat) {
+        return switch(pluginFormat) {
+            case VST2 -> getApplicationPreferences().get(ApplicationDefaults.VST_DIRECTORY_KEY, EMPTY);
+            case VST3 -> getApplicationPreferences().get(ApplicationDefaults.VST3_DIRECTORY_KEY, EMPTY);
+            case AU -> getApplicationPreferences().get(ApplicationDefaults.AU_DIRECTORY_KEY, EMPTY);
+            case LV2 -> getApplicationPreferences().get(ApplicationDefaults.LV2_DIRECTORY_KEY, EMPTY);
+        };
     }
 
     /**
@@ -216,58 +217,49 @@ public class PluginService extends BaseService {
      * @return the set of explored directories
      */
     public Set<String> getDirectoriesExplorationSet() {
-        Set<String> directorySet = new HashSet<>();
-
-        ApplicationPreferences prefs = this.getApplicationPreferences();
-        if (prefs.getBoolean(ApplicationDefaults.VST2_DISCOVERY_ENABLED_KEY, false)
-                && !prefs.get(ApplicationDefaults.VST_DIRECTORY_KEY, "").isBlank()) {
-            String path = prefs.get(ApplicationDefaults.VST_DIRECTORY_KEY, "");
-            directorySet.add(FileUtils.convertPath(path));
-            directorySet.addAll(prefs.getList(ApplicationDefaults.VST2_EXTRA_DIRECTORY_KEY));
+        final var directorySet = new HashSet<String>();
+        final var applicationPreferences = getApplicationPreferences();
+        if (applicationPreferences.getBoolean(ApplicationDefaults.VST2_DISCOVERY_ENABLED_KEY, false)
+                && !applicationPreferences.get(ApplicationDefaults.VST_DIRECTORY_KEY, EMPTY).isBlank()) {
+            directorySet.add(applicationPreferences.get(ApplicationDefaults.VST_DIRECTORY_KEY, EMPTY));
+            directorySet.addAll(applicationPreferences.getList(ApplicationDefaults.VST2_EXTRA_DIRECTORY_KEY));
         }
 
-        if (prefs.getBoolean(ApplicationDefaults.VST3_DISCOVERY_ENABLED_KEY, false)
-                && !prefs.get(ApplicationDefaults.VST3_DIRECTORY_KEY, "").isBlank()) {
-            String path = prefs.get(ApplicationDefaults.VST3_DIRECTORY_KEY, "");
-            directorySet.add(FileUtils.convertPath(path));
-            directorySet.addAll(prefs.getList(ApplicationDefaults.VST3_EXTRA_DIRECTORY_KEY));
+        if (applicationPreferences.getBoolean(ApplicationDefaults.VST3_DISCOVERY_ENABLED_KEY, false)
+                && !applicationPreferences.get(ApplicationDefaults.VST3_DIRECTORY_KEY, EMPTY).isBlank()) {
+            directorySet.add(applicationPreferences.get(ApplicationDefaults.VST3_DIRECTORY_KEY, EMPTY));
+            directorySet.addAll(applicationPreferences.getList(ApplicationDefaults.VST3_EXTRA_DIRECTORY_KEY));
         }
 
-        if (prefs.getBoolean(ApplicationDefaults.AU_DISCOVERY_ENABLED_KEY, false)
-                && !prefs.get(ApplicationDefaults.AU_DIRECTORY_KEY, "").isBlank()) {
-            String path = prefs.get(ApplicationDefaults.AU_DIRECTORY_KEY, "");
-            directorySet.add(FileUtils.convertPath(path));
-            directorySet.addAll(prefs.getList(ApplicationDefaults.AU_EXTRA_DIRECTORY_KEY));
+        if (applicationPreferences.getBoolean(ApplicationDefaults.AU_DISCOVERY_ENABLED_KEY, false)
+                && !applicationPreferences.get(ApplicationDefaults.AU_DIRECTORY_KEY, EMPTY).isBlank()) {
+            directorySet.add(applicationPreferences.get(ApplicationDefaults.AU_DIRECTORY_KEY, EMPTY));
+            directorySet.addAll(applicationPreferences.getList(ApplicationDefaults.AU_EXTRA_DIRECTORY_KEY));
         }
 
-        if (prefs.getBoolean(ApplicationDefaults.LV2_DISCOVERY_ENABLED_KEY, false)
-                && !prefs.get(ApplicationDefaults.LV2_DIRECTORY_KEY, "").isBlank()) {
-            String path = prefs.get(ApplicationDefaults.LV2_DIRECTORY_KEY, "");
-            directorySet.add(FileUtils.convertPath(path));
-            directorySet.addAll(prefs.getList(ApplicationDefaults.LV2_EXTRA_DIRECTORY_KEY));
+        if (applicationPreferences.getBoolean(ApplicationDefaults.LV2_DISCOVERY_ENABLED_KEY, false)
+                && !applicationPreferences.get(ApplicationDefaults.LV2_DIRECTORY_KEY, EMPTY).isBlank()) {
+            directorySet.add(applicationPreferences.get(ApplicationDefaults.LV2_DIRECTORY_KEY, EMPTY));
+            directorySet.addAll(applicationPreferences.getList(ApplicationDefaults.LV2_EXTRA_DIRECTORY_KEY));
         }
-        return directorySet;
+        return directorySet.stream()
+                           .map(FileUtils::convertPath)
+                           .collect(toSet());
     }
 
     /**
-     * Check if format discovery is enabled.
+     * Check if pluginFormat discovery is enabled.
      *
-     * @param format pluginFormat
+     * @param pluginFormat pluginFormat
      * @return true if discovery is enabled.
      */
-    public boolean isFormatEnabled(PluginFormat format) {
-
-        if (PluginFormat.VST2.equals(format)) {
-            return this.getApplicationPreferences().getBoolean(ApplicationDefaults.VST2_DISCOVERY_ENABLED_KEY, false);
-        } else if (PluginFormat.VST3.equals(format)) {
-            return this.getApplicationPreferences().getBoolean(ApplicationDefaults.VST3_DISCOVERY_ENABLED_KEY, false);
-        } else if (PluginFormat.AU.equals(format)) {
-            return this.getApplicationPreferences().getBoolean(ApplicationDefaults.AU_DISCOVERY_ENABLED_KEY, false);
-        } else if (PluginFormat.LV2.equals(format)) {
-            return this.getApplicationPreferences().getBoolean(ApplicationDefaults.LV2_DISCOVERY_ENABLED_KEY, false);
-        }
-
-        return false;
+    public boolean isFormatEnabled(final PluginFormat pluginFormat) {
+        return switch(pluginFormat) {
+            case VST2 -> getApplicationPreferences().getBoolean(ApplicationDefaults.VST2_DISCOVERY_ENABLED_KEY, false);
+            case VST3 -> getApplicationPreferences().getBoolean(ApplicationDefaults.VST3_DISCOVERY_ENABLED_KEY, false);
+            case AU -> getApplicationPreferences().getBoolean(ApplicationDefaults.AU_DISCOVERY_ENABLED_KEY, false);
+            case LV2 -> getApplicationPreferences().getBoolean(ApplicationDefaults.LV2_DISCOVERY_ENABLED_KEY, false);
+        };
     }
 
     /**
@@ -279,12 +271,11 @@ public class PluginService extends BaseService {
         pluginRepository.delete(plugin);
     }
 
-
     public PluginFootprint save(PluginFootprint pluginFootprint) {
         return pluginFootprintRepository.save(pluginFootprint);
     }
 
     public List<Plugin> getSyncIncompletePlugins() {
-        return pluginRepository.findBySyncComplete(false);
+        return pluginRepository.findByScanComplete(false);
     }
 }

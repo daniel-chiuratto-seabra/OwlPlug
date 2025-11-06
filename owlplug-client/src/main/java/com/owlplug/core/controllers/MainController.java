@@ -209,12 +209,12 @@ public class MainController extends BaseController {
         if (applicationMonitor.isPreviousExecutionSafelyTerminated()
                 && getApplicationPreferences().getBoolean(ApplicationDefaults.SYNC_PLUGINS_STARTUP_KEY, false)) {
             LOGGER.info("Starting auto plugin sync");
-            pluginService.syncPlugins();
+            pluginService.scanPlugins(false);
         }
 
     }
 
-    public void selectMainTab(int index) {
+    public void selectMainTab(final int index) {
         tabPaneHeader.getSelectionModel().select(index);
     }
 
