@@ -164,7 +164,7 @@ public class MainController extends BaseController {
 
         Task<Boolean> retrieveUpdateStatusTask = new Task<>() {
             @Override
-            protected Boolean call() throws Exception {
+            protected Boolean call() {
                 return updateService.isUpToDate();
             }
         };
@@ -183,7 +183,7 @@ public class MainController extends BaseController {
     }
 
     @EventListener(AccountChangedEvent.class)
-    public void onAccountChanged(final AccountChangedEvent event) {
+    public void onAccountChanged() {
         refreshAccounts();
     }
 
@@ -202,7 +202,7 @@ public class MainController extends BaseController {
         getApplicationPreferences().putBoolean(ApplicationDefaults.FIRST_LAUNCH_KEY, false);
         optionsController.refreshView();
 
-        getTelemetryService().event("/Startup");
+        getTelemetryService().event("/Startup", p -> p.put("osName", System.getProperty("os.name")));
 
         // Startup plugin sync only triggered if configured and the previous application
         // instance safely terminated

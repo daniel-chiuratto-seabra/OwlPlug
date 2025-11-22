@@ -74,7 +74,7 @@ public class TaskExecutionContextTest {
 
         @Override
         protected TaskResult start() {
-            return success();
+            return completed();
         }
     }
 

@@ -79,7 +79,7 @@ public class BaseTaskFactoryTest {
 
         @Override
         protected TaskResult start() {
-            return success();
+            return completed();
         }
     }
 

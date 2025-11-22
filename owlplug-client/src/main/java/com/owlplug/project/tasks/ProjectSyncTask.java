@@ -45,7 +45,6 @@ public class ProjectSyncTask extends AbstractTask {
         setName("Sync DAW projects");
     }
 
-
     @Override
     protected TaskResult start() throws Exception {
         LOGGER.debug("Starting project sync task");
@@ -90,6 +89,6 @@ public class ProjectSyncTask extends AbstractTask {
         updateMessage("All projects are synchronized");
         updateProgress(1, 1);
 
-        return success();
+        return completed();
     }
 }

@@ -21,8 +21,7 @@ package com.owlplug.core.components;
 import com.owlplug.core.controllers.TaskBarController;
 import com.owlplug.core.tasks.AbstractTask;
 import com.owlplug.core.tasks.TaskResult;
-import com.owlplug.core.utils.StringUtils;
-import javafx.concurrent.Worker.State;
+import javafx.concurrent.WorkerStateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -30,11 +29,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.function.Supplier;
 
-import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static com.owlplug.core.utils.StringUtils.getStackTraceAsString;
 import static javafx.application.Platform.runLater;
 
 /**
@@ -48,7 +47,7 @@ public class TaskRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskRunner.class);
 
     private final TaskBarController taskBarController;
-    private final SimpleAsyncTaskExecutor exec;
+    private final SimpleAsyncTaskExecutor executor;
     private final LinkedBlockingDeque<AbstractTask> taskQueue;
     private final List<AbstractTask> taskHistory;
 
@@ -57,7 +56,7 @@ public class TaskRunner {
     public TaskRunner(final TaskBarController taskBarController) {
         this.taskBarController = taskBarController;
 
-        exec = new SimpleAsyncTaskExecutor();
+        executor = new SimpleAsyncTaskExecutor();
         taskQueue = new LinkedBlockingDeque<>();
         taskHistory = new ArrayList<>();
     }
@@ -95,44 +94,48 @@ public class TaskRunner {
             setCurrentTask(polledTask);
             addInTaskHistory(currentTask);
             LOGGER.debug("Task submitted to executor - {}", currentTask.getClass().getName());
-            supplyAsync(currentTaskCall(), exec).whenComplete((result, ex) -> {
-                if (ex != null) {
-                    Throwable cause = ex.getCause();
-                    LOGGER.error("Error while running task", cause);
-                    runLater(() -> {
-                        taskBarController.setErrorLog(currentTask, cause.getMessage(), cause.toString());
-                        removeCurrentTask();
-                        scheduleNext();
-                    });
-                } else {
-                    runLater(() -> {
-                        if (currentTask.getState() == State.FAILED) {
-                            if (currentTask.getException() != null) {
-                                LOGGER.error("Error while running task", currentTask.getException());
-                                taskBarController.setErrorLog(currentTask, currentTask.getException().getMessage(),
-                                        StringUtils.getStackTraceAsString(currentTask.getException()));
-                            } else {
-                                LOGGER.error("Task failed without exception !");
-                                taskBarController.setErrorLog(currentTask, "Task failed",
-                                        "No error information available. TaskResult=%s".formatted(result));
-                            }
-                        }
-                        removeCurrentTask();
-                        scheduleNext();
-                    });
-                }
+
+            final var future = submitCompletable(currentTask, executor);
+            future.thenAccept(result -> runLater(() -> {
+                removeCurrentTask();
+                scheduleNext();
+            })).exceptionally(ex -> {
+                LOGGER.error("Error while running task", ex);
+                runLater(() -> {
+                    if (ex != null) {
+                        taskBarController.setErrorLog(currentTask, ex.getMessage(), getStackTraceAsString(ex));
+                    } else {
+                        taskBarController.setErrorLog(currentTask, "Task Failed", "No error information available.");
+                    }
+                    removeCurrentTask();
+                    scheduleNext();
+                });
+                return null;
             });
         }
     }
 
-    private Supplier<TaskResult> currentTaskCall() {
-        return () -> {
-            try {
-                return currentTask.call();
-            } catch (Exception e) {
-                throw new CompletionException(e);
-            }
-        };
+    /**
+     * Submit a task to an executor and return a CompletableFuture that will be
+     * completed when the task finishes.
+     * This completable Future is a wrapper to manipulate task result and state
+     * as a replacement of deprecated Spring ListenableFuture.
+     * @param task task to execute
+     * @param exec executor to use
+     *
+     * @return  completableFuture of a task result
+     */
+    private CompletableFuture<TaskResult> submitCompletable(AbstractTask task, Executor exec) {
+        CompletableFuture<TaskResult> cf = new CompletableFuture<>();
+        task.addEventHandler(WorkerStateEvent.WORKER_STATE_SUCCEEDED,
+                e -> cf.complete(task.getValue()));
+        task.addEventHandler(WorkerStateEvent.WORKER_STATE_FAILED,
+                e -> cf.completeExceptionally(task.getException()));
+        task.addEventHandler(WorkerStateEvent.WORKER_STATE_CANCELLED,
+                e -> cf.cancel(true));
+
+        exec.execute(task);
+        return cf;
     }
 
     private void setCurrentTask(AbstractTask task) {

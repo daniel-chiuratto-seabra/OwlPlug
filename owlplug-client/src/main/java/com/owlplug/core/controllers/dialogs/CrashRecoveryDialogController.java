@@ -57,22 +57,14 @@ public class CrashRecoveryDialogController extends AbstractDialogController {
     private final NativeHostService nativeHostService;
     private final OptionsController optionsController;
 
-    @FXML
-    protected CheckBox nativeDiscoveryCheckbox;
-    @FXML
-    protected ComboBox<NativePluginLoader> pluginNativeComboBox;
-    @FXML
-    protected Button closeButton;
-    @FXML
-    protected Button openLogsButton;
-    @FXML
-    protected Hyperlink troubleshootingLink;
-    @FXML
-    protected Hyperlink issuesLink;
-    @FXML
-    protected VBox pluginListContainer;
-    @FXML
-    protected Pane incompleteSyncPane;
+    @FXML protected CheckBox nativeDiscoveryCheckbox;
+    @FXML protected ComboBox<NativePluginLoader> pluginNativeComboBox;
+    @FXML protected Button closeButton;
+    @FXML protected Button openLogsButton;
+    @FXML protected Hyperlink troubleshootingLink;
+    @FXML protected Hyperlink issuesLink;
+    @FXML protected VBox pluginListContainer;
+    @FXML protected Pane incompleteSyncPane;
 
     CrashRecoveryDialogController(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
                                   final TelemetryService telemetryService, final DialogManager dialogManager,
@@ -101,10 +93,10 @@ public class CrashRecoveryDialogController extends AbstractDialogController {
         pluginNativeComboBox.getSelectionModel().select(pluginLoader);
 
         troubleshootingLink.setOnAction((e) -> openDefaultBrowser(
-                getApplicationDefaults().getEnvProperty("owlplug.github.wiki.url")
+            getApplicationDefaults().getEnvProperty("owlplug.github.wiki.url")
         ));
         issuesLink.setOnAction((e) -> openDefaultBrowser(
-                getApplicationDefaults().getEnvProperty("owlplug.github.issues.url")
+            getApplicationDefaults().getEnvProperty("owlplug.github.issues.url")
         ));
 
         closeButton.setOnAction(e -> {
@@ -125,6 +117,7 @@ public class CrashRecoveryDialogController extends AbstractDialogController {
                 getTelemetryService().event("/Error/PluginScanIncomplete", p -> {
                     p.put("nativeDiscoveryLoader", getApplicationPreferences().get(ApplicationDefaults.PREFERRED_NATIVE_LOADER, "unknown"));
                     p.put("pluginName", plugin.getName());
+                    p.put("pluginFormat", plugin.getFormat().getText());
                 });
             }
         } else {
@@ -136,7 +129,7 @@ public class CrashRecoveryDialogController extends AbstractDialogController {
     protected DialogLayout getLayout() {
         final var layout = new DialogLayout();
 
-        final var title = new Label("Ooh, something wrong happens :(");
+        final var title = new Label("Ooh, something wrong happened :(");
         title.getStyleClass().add("heading-3");
         layout.setHeading(title);
         layout.setBody(lazyViewRegistry.get(LazyViewRegistry.CRASH_RECOVERY_VIEW));

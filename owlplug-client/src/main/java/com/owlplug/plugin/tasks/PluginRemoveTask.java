@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.tasks;
 
 import com.owlplug.core.tasks.AbstractTask;
@@ -32,51 +32,45 @@ import java.io.IOException;
 
 public class PluginRemoveTask extends AbstractTask {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PluginRemoveTask.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PluginRemoveTask.class);
 
-  protected Plugin plugin;
-  protected PluginRepository pluginRepository;
+    protected Plugin plugin;
+    protected PluginRepository pluginRepository;
 
-  public PluginRemoveTask(Plugin plugin, PluginRepository pluginRepository) {
-
-    this.plugin = plugin;
-    this.pluginRepository = pluginRepository;
-
-    setName("Remove Plugin - " + plugin.getName());
-  }
-
-  @Override
-  protected TaskResult start() throws Exception {
-
-    this.updateProgress(0, 1);
-    this.updateMessage("Deleting plugin " + plugin.getName() + " ...");
-
-    File pluginFile = new File(plugin.getPath());
-    boolean fileDeleteSuccess = false;
-    if (pluginFile.exists() && pluginFile.isDirectory()) {
-      try {
-        FileUtils.deleteDirectory(pluginFile);
-        fileDeleteSuccess = true;
-      } catch (IOException e) {
-        LOGGER.error("Plugin File can't be removed: " + pluginFile.getPath(), e);
-      }
-    } else {
-      fileDeleteSuccess = pluginFile.delete();
-    }
-    
-    
-    if (fileDeleteSuccess) {
-      pluginRepository.delete(plugin);
-      this.updateProgress(1, 1);
-      this.updateMessage("Plugin successfully deleted");
-
-      return null;
-    } else {
-      this.updateMessage("Error during plugin removal");
-      throw new TaskException("Error during plugin removal");
-
+    public PluginRemoveTask(final Plugin plugin, final PluginRepository pluginRepository) {
+        this.plugin = plugin;
+        this.pluginRepository = pluginRepository;
+        setName("Remove Plugin - " + plugin.getName());
     }
 
-  }
+    @Override
+    protected TaskResult start() throws Exception {
+        updateProgress(0, 1);
+        updateMessage("Deleting plugin %s ...".formatted(plugin.getName()));
 
+        File pluginFile = new File(plugin.getPath());
+        boolean fileDeleteSuccess = false;
+        if (pluginFile.exists() && pluginFile.isDirectory()) {
+            try {
+                FileUtils.deleteDirectory(pluginFile);
+                fileDeleteSuccess = true;
+            } catch (IOException e) {
+                LOGGER.error("Plugin File can't be removed: {}", pluginFile.getPath(), e);
+            }
+        } else {
+            fileDeleteSuccess = pluginFile.delete();
+        }
+
+
+        if (fileDeleteSuccess) {
+            pluginRepository.delete(plugin);
+            updateProgress(1, 1);
+            updateMessage("Plugin successfully deleted");
+
+            return completed();
+        } else {
+            updateMessage("Error during plugin removal");
+            throw new TaskException("Error during plugin removal");
+        }
+    }
 }
