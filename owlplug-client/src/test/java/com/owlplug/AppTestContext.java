@@ -15,64 +15,51 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug;
 
-import com.owlplug.core.components.ApplicationDefaults;
+import org.junit.jupiter.api.BeforeAll;
+import org.mockito.stubbing.Answer;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
 import java.io.File;
 import java.util.prefs.Preferences;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import static com.owlplug.core.components.ApplicationDefaults.VST2_DISCOVERY_ENABLED_KEY;
+import static com.owlplug.core.components.ApplicationDefaults.VST3_DISCOVERY_ENABLED_KEY;
+import static com.owlplug.core.components.ApplicationDefaults.VST_DIRECTORY_KEY;
+import static java.util.Objects.requireNonNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 public class AppTestContext {
 
-  @MockBean
-  protected Preferences preferences;
+    @MockitoBean
+    protected Preferences preferences;
 
-  @BeforeAll
-  public void setUp() {
+    @BeforeAll
+    public void setUp() {
+        final var classLoader = getClass().getClassLoader();
+        final var file = new File(requireNonNull(classLoader.getResource("test-data")).getFile());
+        final var vstDirectoryTestPath = file.getAbsolutePath();
 
-    ClassLoader classLoader = getClass().getClassLoader();
-    File file = new File(classLoader.getResource("test-data").getFile());
-    String vstDirectoryTestPath = file.getAbsolutePath();
+        when(preferences.getBoolean(any(String.class), any(Boolean.class)))
+                .thenAnswer((Answer<?>) invocation -> {
+                    final var args = invocation.getArguments();
+                    return switch ((String) args[0]) {
+                        case VST2_DISCOVERY_ENABLED_KEY, VST3_DISCOVERY_ENABLED_KEY -> true;
+                        default -> false;
+                    };
+                });
 
-
-    Mockito.when(preferences.getBoolean(Mockito.any(String.class), Mockito.any(Boolean.class)))
-        .thenAnswer(new Answer() {
-          public Object answer(InvocationOnMock invocation) {
-            Object[] args = invocation.getArguments();
-            Object mock = invocation.getMock();
-    
-            if (((String) args[0]).equals(ApplicationDefaults.VST2_DISCOVERY_ENABLED_KEY)) {
-              return true;
-            }
-            if (((String) args[0]).equals(ApplicationDefaults.VST3_DISCOVERY_ENABLED_KEY)) {
-              return true;
-            }
-            if (((String) args[0]).equals(ApplicationDefaults.SYNC_PLUGINS_STARTUP_KEY)) {
-              return false;
-            }
-            return false;
-          }
-        });
-
-    Mockito.when(preferences.get(Mockito.any(String.class), Mockito.any(String.class)))
-        .thenAnswer(new Answer() {
-          public Object answer(InvocationOnMock invocation) {
-            Object[] args = invocation.getArguments();
-            Object mock = invocation.getMock();
-    
-            if (((String) args[0]).equals(ApplicationDefaults.VST_DIRECTORY_KEY)) {
-              return vstDirectoryTestPath;
-            }
-    
-            return null;
-          }
-        });
-  }
+        when(preferences.get(any(String.class), any(String.class)))
+                .thenAnswer((Answer<?>) invocation -> {
+                    final var args = invocation.getArguments();
+                    if ((args[0]).equals(VST_DIRECTORY_KEY)) {
+                        return vstDirectoryTestPath;
+                    }
+                    return null;
+                });
+    }
 
 }
