@@ -296,7 +296,11 @@ public class ExploreService extends BaseService {
      */
     public String getBundleInstallFolder(PackageBundle bundle) {
 
-        PluginFormat format = filterEnabledFormats(bundle.getFormats()).getFirst();
+        List<PluginFormat> enabledFormats = filterEnabledFormats(bundle.getFormats());
+        if (enabledFormats.isEmpty()) {
+            return null;
+        }
+        PluginFormat format = enabledFormats.getFirst();
         return pluginService.getPrimaryPluginPathByFormat(format);
 
     }
@@ -305,7 +309,7 @@ public class ExploreService extends BaseService {
         List<PluginFormat> filtered = new ArrayList<>();
         for (String formatVal : formats) {
             PluginFormat format = PluginFormat.fromBundleString(formatVal);
-            if (this.pluginService.isFormatEnabled(format)) {
+            if (format != null && this.pluginService.isFormatEnabled(format)) {
                 filtered.add(format);
             }
         }

@@ -33,10 +33,10 @@ public class ClassPathFileExtractor {
 
     public static void extract(Class classRef, String resourceName, File outputFile) throws IOException {
 
-        LOGGER.debug("Extracting resource to " + outputFile.getAbsolutePath());
+        LOGGER.debug("Extracting resource to {}", outputFile.getAbsolutePath());
         InputStream is = classRef.getClassLoader().getResourceAsStream(resourceName);
         if (is == null) {
-            LOGGER.error("Resource " + resourceName + " not in classpath");
+            LOGGER.error("Resource {} not in classpath", resourceName);
         }
         if (is != null) {
             int read;

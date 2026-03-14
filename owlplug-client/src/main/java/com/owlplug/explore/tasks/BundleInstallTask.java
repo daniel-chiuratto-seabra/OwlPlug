@@ -125,7 +125,7 @@ public class BundleInstallTask extends AbstractTask {
 
         } catch (IOException e) {
             updateMessage("An error occurred during plugin install: " + e.getMessage());
-            LOGGER.error("An error occurred during plugin install: " + e.getMessage());
+            LOGGER.error("An error occurred during plugin install: {}", e.getMessage());
             updateProgress(1, 1);
             throw new TaskException("An error occurred during plugin install", e);
         }
@@ -219,7 +219,7 @@ public class BundleInstallTask extends AbstractTask {
 
     private int contentLength(URL url) {
         HttpURLConnection connection;
-        int contentLength = -1;
+        int contentLength;
         try {
             connection = (HttpURLConnection) url.openConnection();
             contentLength = connection.getContentLength();

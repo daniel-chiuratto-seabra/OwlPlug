@@ -238,7 +238,7 @@ public class ChipViewSkin<T> implements Skin<ChipView> {
 
     // these methods are called inside the chips items change listener
     private void createChip(T item) {
-        Chip<T> chip = null;
+        Chip<T> chip;
         try {
             if (getSkinnable().getChipFactory() != null) {
                 chip = (Chip<T>) getSkinnable().getChipFactory().apply(getSkinnable(), item);

@@ -83,28 +83,28 @@ public class CrashRecoveryDialogController extends AbstractDialogController {
      */
     public void initialize() {
 
-        nativeDiscoveryCheckbox.setDisable(!nativeHostService.isNativeHostAvailable());
+        nativeDiscoveryCheckbox.setDisable(nativeHostService.isNativeHostUnavailable());
         nativeDiscoveryCheckbox.setSelected(getApplicationPreferences().getBoolean(NATIVE_HOST_ENABLED_KEY, false));
 
         initializeNativeHostSettings(getApplicationPreferences(), nativeDiscoveryCheckbox, pluginNativeComboBox, nativeHostService);
 
-        pluginNativeComboBox.setDisable(!nativeHostService.isNativeHostAvailable());
+        pluginNativeComboBox.setDisable(nativeHostService.isNativeHostUnavailable());
         NativePluginLoader pluginLoader = nativeHostService.getCurrentPluginLoader();
         pluginNativeComboBox.getSelectionModel().select(pluginLoader);
 
-        troubleshootingLink.setOnAction((e) -> openDefaultBrowser(
+        troubleshootingLink.setOnAction(_ -> openDefaultBrowser(
             getApplicationDefaults().getWikiUrl()
         ));
-        issuesLink.setOnAction((e) -> openDefaultBrowser(
+        issuesLink.setOnAction(_ -> openDefaultBrowser(
             getApplicationDefaults().getIssuesUrl()
         ));
 
-        closeButton.setOnAction(e -> {
+        closeButton.setOnAction(_ -> {
             optionsController.refreshView();
             close();
         });
 
-        openLogsButton.setOnAction(e -> PlatformUtils.openFromDesktop(ApplicationDefaults.getLogDirectory()));
+        openLogsButton.setOnAction(_ -> PlatformUtils.openFromDesktop(ApplicationDefaults.getLogDirectory()));
 
         final var incompleteSyncPlugins = pluginService.getSyncIncompletePlugins();
         if (isNotEmpty(incompleteSyncPlugins)) {

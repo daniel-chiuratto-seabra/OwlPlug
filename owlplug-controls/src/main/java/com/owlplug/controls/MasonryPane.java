@@ -67,24 +67,27 @@ public class MasonryPane extends Pane {
   private HashMap<Node, BoundingBox> boundingBoxes = new HashMap<>();
   private boolean dirtyBoxes = false;
 
-  private final ListChangeListener<Node> childrenListener = change -> {
-    if (change.next()) {
-      // flag dirty boxes
-      dirtyBoxes = true;
+    public MasonryPane() {
+        // flag dirty boxes
+        // clean removed child nodes from animationMap
+        final ListChangeListener<Node> childrenListener = change -> {
+            if (change.next()) {
+                // flag dirty boxes
+                dirtyBoxes = true;
 
-      // clean removed child nodes from animationMap
-      if (animationMap != null) {
-        for (Node removedNode : change.getRemoved()) {
-          animationMap.remove(removedNode);
-        }
-      }
-    }
-    clearLayout();
-    requestLayout();
-  };
-
-  public MasonryPane() {
-    getChildren().addListener(new WeakListChangeListener<>(childrenListener));
+                // clean removed child nodes from animationMap
+                if (animationMap != null) {
+                    for (Node removedNode : change.getRemoved()) {
+                        if (removedNode instanceof Region) {
+                            animationMap.remove(removedNode);
+                        }
+                    }
+                }
+            }
+            clearLayout();
+            requestLayout();
+        };
+        getChildren().addListener(new WeakListChangeListener<>(childrenListener));
   }
 
   @Override
@@ -190,7 +193,7 @@ public class MasonryPane extends Pane {
             animationMap.put(child, new CachedTransition(child, new Timeline(keyFrame)) {{
                 setCycleDuration(Duration.seconds(0.320));
                 setDelay(Duration.seconds(0));
-                setOnFinished((finish) -> {
+                setOnFinished(_ -> {
                   child.setLayoutX(blockX);
                   child.setLayoutY(blockY);
                   child.setOpacity(1);
@@ -207,7 +210,7 @@ public class MasonryPane extends Pane {
               {
                 setCycleDuration(Duration.seconds(0.320));
                 setDelay(Duration.seconds(0));
-                setOnFinished((finish) -> {
+                setOnFinished(_ -> {
                   child.setLayoutX(blockX);
                   child.setLayoutY(blockY);
                   child.setOpacity(0);
@@ -267,14 +270,14 @@ public class MasonryPane extends Pane {
   /**
    * the layout mode of MasonryPane.
    */
-  private ObjectProperty<LayoutMode> layoutMode = new SimpleObjectProperty<>(LayoutMode.MASONRY);
+  private final ObjectProperty<LayoutMode> layoutMode = new SimpleObjectProperty<>(LayoutMode.MASONRY());
 
   public final ObjectProperty<LayoutMode> layoutModeProperty() {
     return this.layoutMode;
   }
 
   public final LayoutMode getLayoutMode() {
-    return this.layoutModeProperty().get();
+    return layoutModeProperty().get();
   }
 
   /**
@@ -283,14 +286,14 @@ public class MasonryPane extends Pane {
    * @param layoutMode to be used, either MASONRY or BIN_PACKING
    */
   public final void setLayoutMode(final LayoutMode layoutMode) {
-    this.layoutModeProperty().set(layoutMode);
+    layoutModeProperty().set(layoutMode);
   }
 
 
   /**
    * the cell width of masonry grid.
    */
-  private DoubleProperty cellWidth = new SimpleDoubleProperty(70) {
+  private final DoubleProperty cellWidth = new SimpleDoubleProperty(70) {
     @Override
     protected void invalidated() {
       requestLayout();
@@ -309,7 +312,7 @@ public class MasonryPane extends Pane {
     this.cellWidthProperty().set(cellWidth);
   }
 
-  private DoubleProperty cellHeight = new SimpleDoubleProperty(70) {
+  private final DoubleProperty cellHeight = new SimpleDoubleProperty(70) {
     @Override
     protected void invalidated() {
       requestLayout();
@@ -329,7 +332,7 @@ public class MasonryPane extends Pane {
   }
 
 
-  private DoubleProperty hSpacing = new SimpleDoubleProperty(5) {
+  private final DoubleProperty hSpacing = new SimpleDoubleProperty(5) {
     @Override
     protected void invalidated() {
       requestLayout();
@@ -348,7 +351,7 @@ public class MasonryPane extends Pane {
     this.hSpacingProperty().set(spacing);
   }
 
-  private DoubleProperty vSpacing = new SimpleDoubleProperty(5) {
+  private final DoubleProperty vSpacing = new SimpleDoubleProperty(5) {
     @Override
     protected void invalidated() {
       requestLayout();
@@ -367,7 +370,7 @@ public class MasonryPane extends Pane {
     this.vSpacingProperty().set(spacing);
   }
 
-  private IntegerProperty limitColumn = new SimpleIntegerProperty(-1) {
+  private final IntegerProperty limitColumn = new SimpleIntegerProperty(-1) {
     @Override
     protected void invalidated() {
       requestLayout();
@@ -399,7 +402,7 @@ public class MasonryPane extends Pane {
   /**
    * limit the grid rows to certain number.
    */
-  private IntegerProperty limitRow = new SimpleIntegerProperty(100) {
+  private final IntegerProperty limitRow = new SimpleIntegerProperty(100) {
     @Override
     protected void invalidated() {
       requestLayout();
@@ -429,8 +432,18 @@ public class MasonryPane extends Pane {
 
 
   public abstract static class LayoutMode {
-    public static final MasonryLayout MASONRY = new MasonryLayout();
-    public static final BinPackingLayout BIN_PACKING = new BinPackingLayout();
+    public static MasonryLayout MASONRY() {
+      return Holder.MASONRY;
+    }
+
+    public static BinPackingLayout BIN_PACKING() {
+      return Holder.BIN_PACKING;
+    }
+
+    private static class Holder {
+      static final MasonryLayout MASONRY = new MasonryLayout();
+      static final BinPackingLayout BIN_PACKING = new BinPackingLayout();
+    }
 
     protected abstract List<BoundingBox> fillGrid(int[][] matrix, List<Region> children, double cellWidth, double cellHeight, int limitRow, int limitCol, double gutterX, double gutterY);
 
@@ -503,11 +516,11 @@ public class MasonryPane extends Pane {
       }
     }
 
-    protected boolean validWidth(BoundingBox box, Region region, double cellW, double gutterX, double gutterY) {
+    protected boolean isInvalidWidth(BoundingBox box, Region region, double cellW, double gutterX, double gutterY) {
       boolean valid = false;
       if (region.getMinWidth() != -1
               && box.getWidth() * cellW + (box.getWidth() - 1) * 2 * gutterX < region.getMinWidth()) {
-        return false;
+        return true;
       }
 
       if (region.getPrefWidth() == USE_COMPUTED_SIZE
@@ -518,14 +531,14 @@ public class MasonryPane extends Pane {
               && box.getWidth() * cellW + (box.getWidth() - 1) * 2 * gutterX >= region.getPrefWidth()) {
         valid = true;
       }
-      return valid;
+      return !valid;
     }
 
-    protected boolean validHeight(BoundingBox box, Region region, double cellH, double gutterX, double gutterY) {
+    protected boolean isInvalidHeight(BoundingBox box, Region region, double cellH, double gutterX, double gutterY) {
       boolean valid = false;
       if (region.getMinHeight() != -1
               && box.getHeight() * cellH + (box.getHeight() - 1) * 2 * gutterY < region.getMinHeight()) {
-        return false;
+        return true;
       }
 
       if (region.getPrefHeight() == USE_COMPUTED_SIZE
@@ -536,7 +549,7 @@ public class MasonryPane extends Pane {
               && box.getHeight() * cellH + (box.getHeight() - 1) * 2 * gutterY >= region.getPrefHeight()) {
         valid = true;
       }
-      return valid;
+      return !valid;
     }
 
     protected int[][] fillMatrix(int[][] matrix, int id, double row, double col, double width, double height) {
@@ -551,7 +564,7 @@ public class MasonryPane extends Pane {
   }
 
 
-  private static class MasonryLayout extends LayoutMode {
+  public static class MasonryLayout extends LayoutMode {
     @Override
     public List<BoundingBox> fillGrid(int[][] matrix, List<Region> children, double cellWidth, double cellHeight,
                                       int limitRow, int limitCol, double gutterX, double gutterY) {
@@ -586,8 +599,8 @@ public class MasonryPane extends Pane {
             BoundingBox box = getFreeArea(matrix,
                 i, j, block, cellWidth, cellHeight,
                 limitRow, limitCol, gutterX, gutterY);
-            if (!validWidth(box, block, cellWidth, gutterX, gutterY)
-                    || !validHeight(box, block, cellHeight, gutterX, gutterY)) {
+            if (isInvalidWidth(box, block, cellWidth, gutterX, gutterY)
+                    || isInvalidHeight(box, block, cellHeight, gutterX, gutterY)) {
               continue;
             }
             matrix = fillMatrix(matrix,
@@ -611,7 +624,7 @@ public class MasonryPane extends Pane {
     }
   }
 
-  private static class BinPackingLayout extends LayoutMode {
+  public static class BinPackingLayout extends LayoutMode {
     @Override
     public List<BoundingBox> fillGrid(int[][] matrix, List<Region> children, double cellWidth, double cellHeight,
                                       int limitRow, int limitCol, double gutterX, double gutterY) {
@@ -640,11 +653,11 @@ public class MasonryPane extends Pane {
                 limitCol,
                 gutterX,
                 gutterY);
-            if (!validWidth(box, block, cellWidth, gutterX, gutterY) || !validHeight(box,
-                block,
-                cellHeight,
-                gutterX,
-                gutterY)) {
+            if (isInvalidWidth(box, block, cellWidth, gutterX, gutterY) || isInvalidHeight(box,
+                    block,
+                    cellHeight,
+                    gutterX,
+                    gutterY)) {
               continue;
             }
             matrix = fillMatrix(matrix,

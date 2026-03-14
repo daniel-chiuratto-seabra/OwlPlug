@@ -73,8 +73,8 @@ public class Vst3BundleFile extends PluginFile {
                 try {
                     plugin.setScreenshotUrl(snapshot.toURI().toURL().toString());
                 } catch (MalformedURLException e) {
-                    LOGGER.error("Could not determine snapshot url for plugin: " + plugin.getName()
-                            + " using filepath: " + snapshot.getAbsolutePath(), e);
+                    LOGGER.error("Could not determine snapshot url for plugin: {} using filepath: {}",
+                            plugin.getName(), snapshot.getAbsolutePath(), e);
                 }
             }
         }

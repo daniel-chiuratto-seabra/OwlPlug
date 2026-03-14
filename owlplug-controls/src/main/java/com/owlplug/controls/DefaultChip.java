@@ -30,9 +30,9 @@ public class DefaultChip<T> extends Chip<T> {
     super(view, item);
     Button closeButton = new Button("x");
     closeButton.getStyleClass().add("close-button");
-    closeButton.setOnAction((event) -> view.getChips().remove(item));
+    closeButton.setOnAction(_ -> view.getChips().remove(item));
 
-    String tagString = null;
+    String tagString;
     if (getItem() instanceof String) {
       tagString = (String) getItem();
     } else {

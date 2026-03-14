@@ -111,7 +111,7 @@ public class SourceSyncTask extends AbstractTask {
             } catch (IOException e) {
                 this.warnings.add(remoteSource.getName());
                 this.updateMessage("Error accessing source " + remoteSource.getName() + ". Check your network connectivity");
-                LOGGER.error("Error accessing source " + remoteSource.getName() + ". Check your network connectivity", e);
+                LOGGER.error("Error accessing source {}. Check your network connectivity", remoteSource.getName(), e);
 
             } catch (StoreParsingException e) {
                 this.warnings.add(remoteSource.getName());

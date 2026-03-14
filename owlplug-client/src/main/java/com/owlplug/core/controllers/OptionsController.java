@@ -171,13 +171,13 @@ public class OptionsController extends BaseController {
 
         initializeNativeHostSettings(getApplicationPreferences(), pluginNativeCheckbox, pluginNativeComboBox, nativeHostService);
 
-        syncPluginsCheckBox.selectedProperty().addListener((observable, oldValue, newValue) ->
+        syncPluginsCheckBox.selectedProperty().addListener((_, _, newValue) ->
                 getApplicationPreferences().putBoolean(SYNC_PLUGINS_STARTUP_KEY, newValue));
 
-        syncFileStatCheckbox.selectedProperty().addListener((observable, oldValue, newValue) ->
+        syncFileStatCheckbox.selectedProperty().addListener((_, _, newValue) ->
                 getApplicationPreferences().putBoolean(SYNC_FILE_STAT_KEY, newValue));
 
-        storeSubDirectoryCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+        storeSubDirectoryCheckBox.selectedProperty().addListener((_, _, newValue) -> {
             getApplicationPreferences().putBoolean(STORE_SUBDIRECTORY_ENABLED, newValue);
             warningSubDirectory.setVisible(!newValue);
             storeSubDirectoryLabel.setVisible(newValue);
@@ -188,30 +188,30 @@ public class OptionsController extends BaseController {
         storeDirectorySeparator.managedProperty().bind(storeDirectorySeparator.visibleProperty());
         storeDirectoryTextField.managedProperty().bind(storeDirectoryTextField.visibleProperty());
 
-        storeDirectoryCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+        storeDirectoryCheckBox.selectedProperty().addListener((_, _, newValue) -> {
             getApplicationPreferences().putBoolean(STORE_DIRECTORY_ENABLED_KEY, newValue);
             storeDirectorySeparator.setVisible(newValue);
             storeDirectoryTextField.setVisible(newValue);
         });
 
-        storeByCreatorCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+        storeByCreatorCheckBox.selectedProperty().addListener((_, _, newValue) -> {
             getApplicationPreferences().putBoolean(STORE_BY_CREATOR_ENABLED_KEY, newValue);
             storeByCreatorLabel.setVisible(newValue);
         });
 
         storeByCreatorLabel.managedProperty().bind(storeByCreatorLabel.visibleProperty());
 
-        storeDirectoryTextField.textProperty().addListener((observable, oldValue, newValue) ->
+        storeDirectoryTextField.textProperty().addListener((_, _, newValue) ->
                 getApplicationPreferences().put(STORE_DIRECTORY_KEY, newValue));
 
-        telemetryCheckBox.selectedProperty().addListener((observable, oldValue, newValue) ->
+        telemetryCheckBox.selectedProperty().addListener((_, _, newValue) ->
                 getApplicationPreferences().putBoolean(TELEMETRY_ENABLED_KEY, newValue));
 
-        telemetryHyperlink.setOnAction(e -> PlatformUtils.openDefaultBrowser(getApplicationDefaults().getEnvProperty("owlplug.github.wiki.url") + "/Telemetry"));
+        telemetryHyperlink.setOnAction(_ -> PlatformUtils.openDefaultBrowser(getApplicationDefaults().getEnvProperty("owlplug.github.wiki.url") + "/Telemetry"));
 
-        clearCacheButton.setOnAction(e -> optionsService.clearCache());
+        clearCacheButton.setOnAction(_ -> optionsService.clearCache());
 
-        removeDataButton.setOnAction(e -> {
+        removeDataButton.setOnAction(_ -> {
             Dialog dialog = getDialogManager().newDialog();
             DialogLayout layout = new DialogLayout();
             layout.setHeading(new Label("Remove user data"));
@@ -222,10 +222,10 @@ public class OptionsController extends BaseController {
                     You must restart OwlPlug for a complete reset."""));
 
             Button cancelButton = new Button("Cancel");
-            cancelButton.setOnAction(cancelEvent -> dialog.close());
+            cancelButton.setOnAction(_ -> dialog.close());
 
             Button removeButton = new Button("Remove data");
-            removeButton.setOnAction(removeEvent -> {
+            removeButton.setOnAction(_ -> {
                 dialog.close();
                 optionsService.clearAllUserData();
                 refreshView();
@@ -242,9 +242,9 @@ public class OptionsController extends BaseController {
         });
 
         versionLabel.setText(getApplicationDefaults().getVersion());
-        owlplugWebsiteLink.setOnAction(e -> PlatformUtils.openDefaultBrowser(owlplugWebsiteLink.getText()));
-        moreFeaturesButton.setOnAction(e -> donateDialogController.show());
-        openLogsButton.setOnAction(e -> PlatformUtils.openFromDesktop(getLogDirectory()));
+        owlplugWebsiteLink.setOnAction(_ -> PlatformUtils.openDefaultBrowser(owlplugWebsiteLink.getText()));
+        moreFeaturesButton.setOnAction(_ -> donateDialogController.show());
+        openLogsButton.setOnAction(_ -> PlatformUtils.openFromDesktop(getLogDirectory()));
         versionTextFlow.getChildren().add(new SlidingLabel(getContributors()));
 
         refreshView();
@@ -256,8 +256,8 @@ public class OptionsController extends BaseController {
         auPluginPathFragment.refresh();
         lv2PluginPathFragment.refresh();
 
-        pluginNativeCheckbox.setDisable(!nativeHostService.isNativeHostAvailable());
-        pluginNativeComboBox.setDisable(!nativeHostService.isNativeHostAvailable());
+        pluginNativeCheckbox.setDisable(nativeHostService.isNativeHostUnavailable());
+        pluginNativeComboBox.setDisable(nativeHostService.isNativeHostUnavailable());
         pluginNativeCheckbox.setSelected(getApplicationPreferences().getBoolean(NATIVE_HOST_ENABLED_KEY, false));
         syncPluginsCheckBox.setSelected(getApplicationPreferences().getBoolean(SYNC_PLUGINS_STARTUP_KEY, false));
         syncFileStatCheckbox.setSelected(getApplicationPreferences().getBoolean(SYNC_FILE_STAT_KEY, true));

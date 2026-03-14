@@ -56,7 +56,7 @@ public class NativeHostService extends BaseService {
     private void init() {
         pluginLoaders.add(EmbeddedScannerPluginLoader.getInstance());
         pluginLoaders.add(JNINativePluginLoader.getInstance());
-        this.fallbackLoader = DummyPluginLoader.getInstance();
+        fallbackLoader = DummyPluginLoader.getInstance();
         pluginLoaders.add(fallbackLoader);
 
         for (NativePluginLoader loader : pluginLoaders) {
@@ -94,14 +94,20 @@ public class NativeHostService extends BaseService {
         }
 
         if (currentPluginLoader == null) {
-            currentPluginLoader = getAvailablePluginLoaders().stream().findFirst().get();
+            Optional<NativePluginLoader> availableLoader = getAvailablePluginLoaders().stream().findFirst();
+            if (availableLoader.isPresent()) {
+                currentPluginLoader = availableLoader.get();
+            } else {
+                LOGGER.warn("No available native plugin loader found. Using fallback loader.");
+                currentPluginLoader = fallbackLoader;
+            }
         }
 
         LOGGER.info("Native plugin loader set to {}", currentPluginLoader.getId());
     }
 
     public List<NativePluginLoader> getAvailablePluginLoaders() {
-        return pluginLoaders.stream().filter(l -> l.isAvailable()).toList();
+        return pluginLoaders.stream().filter(NativePluginLoader::isAvailable).toList();
     }
 
     public Optional<NativePluginLoader> getLoaderById(String id) {
@@ -122,13 +128,13 @@ public class NativeHostService extends BaseService {
         return this.getApplicationPreferences().getBoolean(ApplicationDefaults.NATIVE_HOST_ENABLED_KEY, false);
     }
 
-    public boolean isNativeHostAvailable() {
+    public boolean isNativeHostUnavailable() {
         for (NativePluginLoader loader : pluginLoaders) {
             if (loader.isAvailable()) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
 }

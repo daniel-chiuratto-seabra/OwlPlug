@@ -69,25 +69,27 @@ public class ReaperProjectExplorer implements ProjectExplorer {
             final var reaperProjectLexer = new ReaperProjectLexer(CharStreams.fromStream(fileInputStream));
             final var commonTokenStream = new CommonTokenStream(reaperProjectLexer);
             final var reaperProjectParser = new ReaperProjectParser(commonTokenStream);
-            final var nodeContext = reaperProjectParser.node();
+            final var rootContext = reaperProjectParser.root();
 
-            final var parseTreeWalker = new ParseTreeWalker();
-            final var pluginNodeListener = new PluginNodeListener();
-            parseTreeWalker.walk(pluginNodeListener, nodeContext);
+            if (rootContext != null) {
+                final var parseTreeWalker = new ParseTreeWalker();
+                final var pluginNodeListener = new PluginNodeListener();
+                parseTreeWalker.walk(pluginNodeListener, rootContext);
 
-            pluginNodeListener.getReaperPlugins().forEach(reaperPlugin -> {
-                final var dawPlugin = new DawPlugin();
-                dawPlugin.setProject(dawProject);
-                dawPlugin.setName(FilenameUtils.removeExtension(reaperPlugin.getFilename()));
-                dawPlugin.setPath(reaperPlugin.getFilename());
+                pluginNodeListener.getReaperPlugins().forEach(reaperPlugin -> {
+                    final var dawPlugin = new DawPlugin();
+                    dawPlugin.setProject(dawProject);
+                    dawPlugin.setName(FilenameUtils.removeExtension(reaperPlugin.getFilename()));
+                    dawPlugin.setPath(reaperPlugin.getFilename());
 
-                if (reaperPlugin.getName().contains("VST3")) {
-                    dawPlugin.setFormat(PluginFormat.VST3);
-                } else {
-                    dawPlugin.setFormat(PluginFormat.VST2);
-                }
-                dawProject.getPlugins().add(dawPlugin);
-            });
+                    if (reaperPlugin.getName().contains("VST3")) {
+                        dawPlugin.setFormat(PluginFormat.VST3);
+                    } else {
+                        dawPlugin.setFormat(PluginFormat.VST2);
+                    }
+                    dawProject.getPlugins().add(dawPlugin);
+                });
+            }
 
             return dawProject;
 

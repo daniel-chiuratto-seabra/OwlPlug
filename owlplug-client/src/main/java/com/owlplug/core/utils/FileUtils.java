@@ -56,7 +56,7 @@ public class FileUtils {
             files.add(directory);
         }
 
-        innerListFiles(files, directory, true, new ArrayList<>());
+        innerListFiles(files, directory, new ArrayList<>());
         return files;
 
     }
@@ -69,17 +69,16 @@ public class FileUtils {
      *
      * @param files                 - List of already explored files
      * @param directory             - Directory to explore
-     * @param includeSubDirectories - Recursively explore subdirectories and symlinks
      * @param symlinksContext       - Current symlink context
      */
-    private static void innerListFiles(List<File> files, File directory, boolean includeSubDirectories,
+    private static void innerListFiles(List<File> files, File directory,
                                        List<String> symlinksContext) {
 
         File[] found = directory.listFiles();
 
         if (found != null) {
             for (File file : found) {
-                if (file.isDirectory() && includeSubDirectories) {
+                if (file.isDirectory()) {
 
                     if (Files.isSymbolicLink(file.toPath())) {
                         try {
@@ -89,7 +88,7 @@ public class FileUtils {
                             if (!currentSymlinksContext.contains(targetPath.toString())) {
                                 files.add(file);
                                 currentSymlinksContext.add(targetPath.toString());
-                                innerListFiles(files, file, includeSubDirectories, currentSymlinksContext);
+                                innerListFiles(files, file, currentSymlinksContext);
                             }
 
                         } catch (IOException e) {
@@ -98,7 +97,7 @@ public class FileUtils {
                         }
                     } else {
                         files.add(file);
-                        innerListFiles(files, file, includeSubDirectories, symlinksContext);
+                        innerListFiles(files, file, symlinksContext);
                     }
 
                 } else {
