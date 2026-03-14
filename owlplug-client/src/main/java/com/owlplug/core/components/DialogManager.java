@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.components;
 
 import com.owlplug.controls.Dialog;
@@ -24,83 +24,90 @@ import com.owlplug.core.controllers.MainController;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.text.Text;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 
 @Component
 public class DialogManager {
 
-  @Autowired
-  private MainController mainController;
+    private MainController mainController;
 
-  /**
-   * Creates a new dialog.
-   * 
-   * @return
-   */
-  public Dialog newDialog() {
-    Dialog dialog = new Dialog();
-    dialog.setDialogContainer(mainController.getRootPane());
-    return dialog;
-  }
+    /**
+     * Initialize the {@link DialogManager} with the {@link MainController}.
+     * This is used to break a circular dependency.
+     *
+     * @param mainController - the {@link MainController} instance.
+     */
+    public void init(final MainController mainController) {
+        this.mainController = mainController;
+    }
 
+    /**
+     * Creates a new dialog.
+     *
+     * @return {@link Dialog} instance
+     */
+    public Dialog newDialog() {
+        Dialog dialog = new Dialog();
+        dialog.setDialogContainer(mainController.getRootPane());
 
-  /**
-   * Creates a new dialog.
-   * 
-   * @param width  - dialog width
-   * @param height - dialog height
-   * @param layout   - dialog layout
-   * @return the dialog
-   */
-  public Dialog newDialog(double width, double height, DialogLayout layout) {
-    layout.setMaxSize(width, height);
-    layout.setPrefSize(width, height);
-    return newDialog(layout);
-
-  }
+        return dialog;
+    }
 
 
-  /**
-   * Creates a new dialog based on dialog layout.
-   * 
-   * @param layout - dialog layout
-   * @return the dialog
-   */
-  public Dialog newDialog(DialogLayout layout) {
+    /**
+     * Creates a new dialog.
+     *
+     * @param width  - dialog width
+     * @param height - dialog height
+     * @param layout - dialog layout
+     * @return the dialog
+     */
+    public Dialog newDialog(double width, double height, DialogLayout layout) {
+        layout.setMaxSize(width, height);
+        layout.setPrefSize(width, height);
+        return newDialog(layout);
+    }
 
-    Dialog dialog = newDialog();
-    dialog.setContent(layout);
-    return dialog;
-  }
 
-  public Dialog newSimpleInfoDialog(String title, String body) {
+    /**
+     * Creates a new dialog based on dialog layout.
+     *
+     * @param layout - dialog layout
+     * @return the dialog
+     */
+    public Dialog newDialog(DialogLayout layout) {
 
-    return newSimpleInfoDialog(new Text(title), new Text(body));
-  }
+        Dialog dialog = newDialog();
+        dialog.setContent(layout);
+        return dialog;
+    }
 
-  /**
-   * Creates a new information dialog.
-   * 
-   * @param title - dialog title
-   * @param body  - dialog body
-   * @return the dialog
-   */
-  public Dialog newSimpleInfoDialog(Node title, Node body) {
-    DialogLayout layout = new DialogLayout();
-    Dialog dialog = newDialog(layout);
+    public Dialog newSimpleInfoDialog(String title, String body) {
 
-    layout.setHeading(title);
-    layout.setBody(body);
+        return newSimpleInfoDialog(new Text(title), new Text(body));
+    }
 
-    Button button = new Button("Close");
+    /**
+     * Creates a new information dialog.
+     *
+     * @param title - dialog title
+     * @param body  - dialog body
+     * @return the dialog
+     */
+    public Dialog newSimpleInfoDialog(Node title, Node body) {
+        DialogLayout layout = new DialogLayout();
+        Dialog dialog = newDialog(layout);
 
-    button.setOnAction(e -> dialog.close());
+        layout.setHeading(title);
+        layout.setBody(body);
 
-    layout.setActions(button);
-    return dialog;
+        Button button = new Button("Close");
 
-  }
+        button.setOnAction(e -> dialog.close());
+
+        layout.setActions(button);
+        return dialog;
+
+    }
 
 }

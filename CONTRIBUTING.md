@@ -20,11 +20,11 @@ By submitting a pull request, issue, or other contribution you confirm that you 
 Before opening a new issue:
 - Search existing issues to avoid duplicates.
 - When creating an issue, use a clear title and include:
-  - A short description of the problem or requested feature.
-  - Steps to reproduce (for bugs).
-  - Expected vs actual behavior.
-  - Operating system and OwlPlug version.
-  - Any relevant logs or stack traces.
+    - A short description of the problem or requested feature.
+    - Steps to reproduce (for bugs).
+    - Expected vs actual behavior.
+    - Operating system and OwlPlug version.
+    - Any relevant logs or stack traces.
 
 Helpful links:
 - Issues: https://github.com/DropSnorz/OwlPlug/issues
@@ -37,9 +37,9 @@ Helpful links:
 General workflow
 1. Fork the repository.
 2. Create a branch for your change:
-   - feat/my-short-description
-   - fix/issue-123-short-desc
-   - docs/update-docs
+    - feat/my-short-description
+    - fix/issue-123-short-desc
+    - docs/update-docs
 3. Make your changes in the fork and commit.
 4. Run tests and verify build locally.
 5. Open a pull request (PR) from your branch to default (`master`).

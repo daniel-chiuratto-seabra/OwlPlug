@@ -20,4 +20,6 @@ jobs:
     - name: Build maven parent project
       run: mvn -B install -DskipTests
     - name: Run Test
-      run: mvn test
+      uses: GabrielBB/xvfb-action@v1
+      with:
+        run: mvn test

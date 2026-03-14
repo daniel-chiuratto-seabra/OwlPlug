@@ -19,9 +19,9 @@
 
 package com.owlplug.project.components;
 
-import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.components.ApplicationPreferences;
 import com.owlplug.core.components.BaseTaskFactory;
+import com.owlplug.core.components.TaskRunner;
 import com.owlplug.core.tasks.SimpleEventListener;
 import com.owlplug.core.tasks.TaskExecutionContext;
 import com.owlplug.project.repositories.DawPluginRepository;
@@ -29,52 +29,54 @@ import com.owlplug.project.repositories.DawProjectRepository;
 import com.owlplug.project.services.PluginLookupService;
 import com.owlplug.project.tasks.PluginLookupTask;
 import com.owlplug.project.tasks.ProjectSyncTask;
-import java.util.ArrayList;
-import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+import static com.owlplug.core.components.ApplicationDefaults.PROJECT_DIRECTORY_KEY;
 
 @Component
 public class ProjectTaskFactory extends BaseTaskFactory {
 
-  @Autowired
-  private ApplicationPreferences prefs;
+    private final ApplicationPreferences applicationPreferences;
+    private final PluginLookupService pluginLookupService;
+    private final DawProjectRepository dawProjectRepository;
+    private final DawPluginRepository dawPluginRepository;
 
-  @Autowired
-  private PluginLookupService lookupService;
-  @Autowired
-  private DawProjectRepository projectRepository;
-  @Autowired
-  private DawPluginRepository dawPluginRepository;
+    private final Collection<SimpleEventListener> syncProjectsListeners = new ArrayList<>();
 
-  private ArrayList<SimpleEventListener> syncProjectsListeners = new ArrayList<>();
+    public ProjectTaskFactory(final TaskRunner taskRunner, final ApplicationPreferences applicationPreferences,
+                              final PluginLookupService pluginLookupService, final DawProjectRepository dawProjectRepository,
+                              final DawPluginRepository dawPluginRepository) {
+        super(taskRunner);
+        this.applicationPreferences = applicationPreferences;
+        this.pluginLookupService = pluginLookupService;
+        this.dawProjectRepository = dawProjectRepository;
+        this.dawPluginRepository = dawPluginRepository;
+    }
 
-  public TaskExecutionContext createSyncTask() {
+    public TaskExecutionContext createSyncTask() {
+        final var directories = applicationPreferences.getList(PROJECT_DIRECTORY_KEY);
+        final var projectSyncTask = new ProjectSyncTask(dawProjectRepository, directories);
+        projectSyncTask.setOnSucceeded(e -> {
+            createLookupTask().scheduleNow();
+            notifyListeners(syncProjectsListeners);
+        });
+        return create(projectSyncTask);
+    }
 
-    List<String> directories = prefs.getList(ApplicationDefaults.PROJECT_DIRECTORY_KEY);
+    public TaskExecutionContext createLookupTask() {
+        final var pluginLookupTask = new PluginLookupTask(dawPluginRepository, pluginLookupService);
+        pluginLookupTask.setOnSucceeded(e -> notifyListeners(syncProjectsListeners));
+        return create(pluginLookupTask);
+    }
 
-    ProjectSyncTask task = new ProjectSyncTask(projectRepository, directories);
-    task.setOnSucceeded(e -> {
-      createLookupTask().scheduleNow();
-      notifyListeners(syncProjectsListeners);
-    });
-    return create(task);
-  }
+    public void addSyncProjectsListener(final SimpleEventListener simpleEventListener) {
+        syncProjectsListeners.add(simpleEventListener);
+    }
 
-  public TaskExecutionContext createLookupTask() {
-
-    PluginLookupTask task = new PluginLookupTask(dawPluginRepository, lookupService);
-    task.setOnSucceeded(e -> {
-      notifyListeners(syncProjectsListeners);
-    });
-    return create(task);
-  }
-
-  public void addSyncProjectsListener(SimpleEventListener eventListener) {
-    syncProjectsListeners.add(eventListener);
-  }
-
-  public void removeSyncProjectsListener(SimpleEventListener eventListener) {
-    syncProjectsListeners.remove(eventListener);
-  }
+    public void removeSyncProjectsListener(final SimpleEventListener simpleEventListener) {
+        syncProjectsListeners.remove(simpleEventListener);
+    }
 }

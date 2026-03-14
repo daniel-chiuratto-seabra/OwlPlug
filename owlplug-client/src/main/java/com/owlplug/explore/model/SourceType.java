@@ -18,30 +18,22 @@
 
 package com.owlplug.explore.model;
 
+import lombok.Getter;
+
+@Getter
 public enum SourceType {
 
-  OWLPLUG_REGISTRY("owlplug-registry", "OwlPlug Registry", "R"),
-  OAS_REGISTRY("open-audio-stack-registry", "OAS Registry", "O");
+    OWLPLUG_REGISTRY("owlplug-registry", "OwlPlug Registry", "R"),
+    OAS_REGISTRY("open-audio-stack-registry", "OAS Registry", "O");
 
-  private final String value;
-  private final String label;
-  private final String shortLabel;
+    private final String value;
+    private final String label;
+    private final String shortLabel;
 
-  SourceType(String value, String label, String shortLabel) {
-    this.value = value;
-    this.label = label;
-    this.shortLabel = shortLabel;
-  }
+    SourceType(final String value, final String label, final String shortLabel) {
+        this.value = value;
+        this.label = label;
+        this.shortLabel = shortLabel;
+    }
 
-  public String getValue() {
-    return value;
-  }
-
-  public String getLabel() {
-    return label;
-  }
-
-  public String getShortLabel() {
-    return shortLabel;
-  }
 }

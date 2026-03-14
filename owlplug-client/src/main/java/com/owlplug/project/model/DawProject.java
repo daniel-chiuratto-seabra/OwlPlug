@@ -25,101 +25,52 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
+@Getter
+@Setter
 @Entity
+@ToString
+@EqualsAndHashCode
 public class DawProject {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-  private String path;
-  private String name;
-  private DawApplication application;
-  private String appFullName;
-  private String formatVersion;
-  @OneToMany(mappedBy = "project", fetch = FetchType.EAGER, orphanRemoval = true,
-          cascade = { CascadeType.PERSIST, CascadeType.REMOVE })
-  private Set<DawPlugin> plugins = new HashSet<>();
-  private Date lastModifiedAt;
-  private Date createdAt;
+    private String path;
 
-  public Long getId() {
-    return id;
-  }
+    private String name;
 
-  public String getPath() {
-    return path;
-  }
+    private DawApplication application;
 
-  public void setPath(String path) {
-    this.path = path;
-  }
+    private String appFullName;
 
-  public DawApplication getApplication() {
-    return application;
-  }
+    private String formatVersion;
 
-  public void setApplication(DawApplication application) {
-    this.application = application;
-  }
+    private Date lastModifiedAt;
 
-  public String getName() {
-    return name;
-  }
+    private Date createdAt;
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    @OneToMany(mappedBy = "project", fetch = FetchType.EAGER, orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private Set<DawPlugin> plugins = new HashSet<>();
 
-  public String getAppFullName() {
-    return appFullName;
-  }
+    public List<DawPlugin> getPluginByLookupResult(final LookupResult result) {
+        return plugins.stream().filter(lookUpResultFilter(result)).toList();
+    }
 
-  public void setAppFullName(String appName) {
-    this.appFullName = appName;
-  }
+    private static Predicate<DawPlugin> lookUpResultFilter(final LookupResult result) {
+        return dawPlugin -> dawPlugin.getLookup() != null &&
+                dawPlugin.getLookup().getResult().equals(result);
+    }
 
-  public Set<DawPlugin> getPlugins() {
-    return plugins;
-  }
-
-  public void setPlugins(Set<DawPlugin> plugins) {
-    this.plugins = plugins;
-  }
-
-  public String getFormatVersion() {
-    return formatVersion;
-  }
-
-  public void setFormatVersion(String formatVersion) {
-    this.formatVersion = formatVersion;
-  }
-
-  public Date getLastModifiedAt() {
-    return lastModifiedAt;
-  }
-
-  public void setLastModifiedAt(Date lastModifiedAt) {
-    this.lastModifiedAt = lastModifiedAt;
-  }
-
-  public Date getCreatedAt() {
-    return createdAt;
-  }
-
-  public void setCreatedAt(Date createdAt) {
-    this.createdAt = createdAt;
-  }
-
-  public List<DawPlugin> getPluginByLookupResult(LookupResult result) {
-    return plugins.stream()
-            .filter(p -> p.getLookup() != null && p.getLookup().getResult().equals(result))
-                    .collect(Collectors.toList());
-  }
 }

@@ -18,46 +18,88 @@
 
 package com.owlplug.project.tasks.discovery;
 
+import com.owlplug.plugin.model.PluginFormat;
+import com.owlplug.project.model.DawApplication;
+import com.owlplug.project.model.DawProject;
+import com.owlplug.project.tasks.discovery.ProjectExplorerException;
+import com.owlplug.project.tasks.discovery.ableton.AbletonProjectExplorer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import com.owlplug.plugin.model.PluginFormat;
-import com.owlplug.project.model.DawApplication;
-import com.owlplug.project.model.DawProject;
-import com.owlplug.project.tasks.discovery.ProjectExplorerException;
-import com.owlplug.project.tasks.discovery.ableton.AbletonProjectExplorer;
-import java.io.File;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AbletonProjectExplorerTest {
 
-  @Test
-  public void ableton11Schema5ContainingVstAndVst3ValidProject() throws ProjectExplorerException {
-    AbletonProjectExplorer explorer = new AbletonProjectExplorer();
+    private AbletonProjectExplorer explorer;
 
-    File file = new File(this.getClass().getClassLoader()
-            .getResource("projects/ableton/ableton11Schema5.als").getFile());
+    @BeforeEach
+    void setUp() {
+        explorer = new AbletonProjectExplorer();
+    }
 
-    DawProject project = explorer.explore(file);
-    assertEquals("ableton11Schema5",project.getName());
-    assertEquals(DawApplication.ABLETON, project.getApplication());
-    assertEquals("Ableton Live 11.1", project.getAppFullName());
-    assertEquals("5", project.getFormatVersion());
-    assertEquals(2, project.getPlugins().size());
+    @Test
+    public void ableton11Schema5ContainingVstAndVst3ValidProject() throws ProjectExplorerException {
+        final var file = new File(this.getClass().getClassLoader()
+                .getResource("projects/ableton/ableton11Schema5.als").getFile());
 
-    assertThat(project.getPlugins(), containsInAnyOrder(
-            allOf(
-                    hasProperty("name", is("Vital")),
-                    hasProperty("format", is(PluginFormat.VST2))
-            ),
-            allOf(
-                    hasProperty("name", is("Tunefish4")),
-                    hasProperty("format", is(PluginFormat.VST3))
-            )
-    ));
-  }
+        final var dawProject = explorer.explore(file);
+        assertEquals("ableton11Schema5", dawProject.getName());
+        assertEquals(DawApplication.ABLETON, dawProject.getApplication());
+        assertEquals("Ableton Live 11.1", dawProject.getAppFullName());
+        assertEquals("5", dawProject.getFormatVersion());
+        assertEquals(2, dawProject.getPlugins().size());
+
+        assertThat(dawProject.getPlugins(), containsInAnyOrder(
+                allOf(
+                        hasProperty("name", is("Vital")),
+                        hasProperty("format", is(PluginFormat.VST2))
+                ),
+                allOf(
+                        hasProperty("name", is("Tunefish4")),
+                        hasProperty("format", is(PluginFormat.VST3))
+                )
+        ));
+    }
+
+    @Test
+    void canExploreFile_returnsTrue_forValidAlsFile() {
+        final var file = new File(getClass().getClassLoader()
+                .getResource("projects/ableton/ableton11Schema5.als").getFile());
+        assertTrue(explorer.canExploreFile(file));
+    }
+
+    @Test
+    void canExploreFile_returnsFalse_forNonAlsFile() {
+        final var file = mock(File.class);
+        when(file.isFile()).thenReturn(true);
+        when(file.getAbsolutePath()).thenReturn("/path/to/project.song");
+        assertFalse(explorer.canExploreFile(file));
+    }
+
+    @Test
+    void canExploreFile_returnsFalse_forDirectory() {
+        final var file = mock(File.class);
+        when(file.isFile()).thenReturn(false);
+        assertFalse(explorer.canExploreFile(file));
+    }
+
+    @Test
+    void explore_returnsNull_forNonAlsFile() throws ProjectExplorerException {
+        final var file = mock(File.class);
+        when(file.isFile()).thenReturn(true);
+        when(file.getAbsolutePath()).thenReturn("/path/to/project.song");
+        assertNull(explorer.explore(file));
+    }
 }

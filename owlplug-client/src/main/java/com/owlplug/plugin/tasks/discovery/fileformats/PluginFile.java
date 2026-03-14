@@ -15,77 +15,66 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.tasks.discovery.fileformats;
 
 import com.owlplug.core.utils.FileUtils;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.PluginComponent;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.commons.io.FilenameUtils;
+
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
-import org.apache.commons.io.FilenameUtils;
 
+@Getter
+@Setter
 public abstract class PluginFile {
-  
-  private File pluginFile;
 
-  private File scanDirectory;
-  
-  public PluginFile(File pluginFile) {
-    this.pluginFile = pluginFile;
-  }
-  
-  public abstract Plugin toPlugin();
+    private File pluginFile;
 
-  Plugin createPlugin() {
-    Plugin plugin = new Plugin();
-    plugin.setScanDirectoryPath(FileUtils.convertPath(this.getScanDirectory().getAbsolutePath()));
-    plugin.setPath(FileUtils.convertPath(this.getPluginFile().getAbsolutePath()));
-    plugin.setName(FilenameUtils.removeExtension(this.getPluginFile().getName()));
-    plugin.setDisabled(this.isDisabled());
+    private File scanDirectory;
 
-    return plugin;
-  }
+    public PluginFile(final File pluginFile) {
+        this.pluginFile = pluginFile;
+    }
 
-  public List<PluginComponent> toComponents() {
-    return null;
-  }
+    public abstract Plugin toPlugin();
 
-  public File getPluginFile() {
-    return pluginFile;
-  }
+    Plugin createPlugin() {
+        Plugin plugin = new Plugin();
+        plugin.setScanDirectoryPath(FileUtils.convertPath(this.getScanDirectory().getAbsolutePath()));
+        plugin.setPath(FileUtils.convertPath(this.getPluginFile().getAbsolutePath()));
+        plugin.setName(FilenameUtils.removeExtension(this.getPluginFile().getName()));
+        plugin.setDisabled(this.isDisabled());
 
-  public void setPluginFile(File pluginFile) {
-    this.pluginFile = pluginFile;
-  }
+        return plugin;
+    }
 
-  public File getScanDirectory() {
-    return scanDirectory;
-  }
+    public List<PluginComponent> toComponents() {
+        return null;
+    }
 
-  public void setScanDirectory(File scanDirectory) {
-    this.scanDirectory = scanDirectory;
-  }
+    public boolean isDisabled() {
+        return pluginFile.getAbsolutePath().endsWith(".disabled");
+    }
 
-  public boolean isDisabled() {
-    return pluginFile.getAbsolutePath().endsWith(".disabled");
-  }
+    public String getPath() {
+        return FileUtils.convertPath(pluginFile.getAbsolutePath());
+    }
 
-  public String getPath() {
-    return FileUtils.convertPath(pluginFile.getAbsolutePath());
-  }
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PluginFile that = (PluginFile) o;
+        return Objects.equals(pluginFile.getAbsolutePath(), that.pluginFile.getAbsolutePath());
+    }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    PluginFile that = (PluginFile) o;
-    return Objects.equals(pluginFile.getAbsolutePath(), that.pluginFile.getAbsolutePath());
-  }
-
-  @Override
-  public int hashCode() {
-    return pluginFile.getAbsolutePath().hashCode();
-  }
+    @Override
+    public int hashCode() {
+        return pluginFile.getAbsolutePath().hashCode();
+    }
 }

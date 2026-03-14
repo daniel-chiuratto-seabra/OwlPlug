@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.tasks;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -38,9 +38,6 @@ import com.owlplug.explore.model.mappers.registry.RegistryMapper;
 import com.owlplug.explore.model.mappers.registry.RegistryModelAdapter;
 import com.owlplug.explore.repositories.RemotePackageRepository;
 import com.owlplug.explore.repositories.RemoteSourceRepository;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -50,166 +47,172 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 public class SourceSyncTask extends AbstractTask {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(SourceSyncTask.class);
 
-  private RemoteSourceRepository remoteSourceRepository;
-  private RemotePackageRepository remotePackageRepository;
+    private final RemoteSourceRepository remoteSourceRepository;
+    private final RemotePackageRepository remotePackageRepository;
 
-  private ArrayList<String> warnings = new ArrayList<>();
+    private final Collection<String> warnings = new ArrayList<>();
 
 
-  /**
-   * Creates a new SourceSync tasks.
-   * 
-   * @param remoteSourceRepository  remoteSource Repository
-   * @param remotePackageRepository remotePackage Repository
-   */
-  public SourceSyncTask(RemoteSourceRepository remoteSourceRepository, RemotePackageRepository remotePackageRepository) {
-    super("Syncing plugin sources");
-    this.remoteSourceRepository = remoteSourceRepository;
-    this.remotePackageRepository = remotePackageRepository;
-  }
-
-  @Override
-  protected TaskResult start() throws TaskException {
-
-    this.updateMessage("Syncing plugins stores");
-    this.commitProgress(-1);
-
-    Iterable<RemoteSource> storeList = remoteSourceRepository.findAll();
-    this.setMaxProgress(2 + Iterables.size(storeList));
-
-    remotePackageRepository.deleteAll();
-    // Flushing context to the database as next queries will recreate entities
-    remotePackageRepository.flush();
-
-    this.commitProgress(2);
-    CloseableHttpResponse response = null;
-
-    for (RemoteSource remoteSource : remoteSourceRepository.findAll()) {
-      try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-        log.debug("Exploring source {} - {}", remoteSource.getName(), remoteSource.getType().getLabel());
-        this.updateMessage("Exploring source " + remoteSource.getName()
-                               + " - " + remoteSource.getType().getLabel());
-        HttpGet httpGet = new HttpGet(remoteSource.getUrl());
-        response = httpclient.execute(httpGet);
-        HttpEntity entity = response.getEntity();
-
-        if (remoteSource.getType() == null || remoteSource.getType().equals(SourceType.OWLPLUG_REGISTRY)) {
-          processRegistrySource(entity, remoteSource);
-        } else if (remoteSource.getType().equals(SourceType.OAS_REGISTRY)) {
-          processOASSource(entity, remoteSource);
-        }
-
-        EntityUtils.consume(entity);
-
-      } catch (IOException e) {
-        this.warnings.add(remoteSource.getName());
-        this.updateMessage("Error accessing source " + remoteSource.getName() + ". Check your network connectivity");
-        log.error("Error accessing source " + remoteSource.getName() + ". Check your network connectivity", e);
-
-      } catch (StoreParsingException e) {
-        this.warnings.add(remoteSource.getName());
-        this.updateMessage("Error parsing remote source response");
-        log.error("Error parsing remote source response", e);
-
-      } finally {
-        this.commitProgress(1);
-        try {
-          if (response != null) {
-            response.close();
-          }
-        } catch (IOException e) {
-          log.error("Error closing response", e);
-        }
-      }
+    /**
+     * Creates a new SourceSync task.
+     *
+     * @param remoteSourceRepository  remoteSource Repository
+     * @param remotePackageRepository remotePackage Repository
+     */
+    public SourceSyncTask(final RemoteSourceRepository remoteSourceRepository, final RemotePackageRepository remotePackageRepository) {
+        super("Syncing plugin sources");
+        this.remoteSourceRepository = remoteSourceRepository;
+        this.remotePackageRepository = remotePackageRepository;
     }
 
-    this.commitProgress(1);
+    @Override
+    protected TaskResult start() throws TaskException {
 
-    if (this.warnings.isEmpty()) {
-      this.updateMessage("Plugin sources synced.");
+        this.updateMessage("Syncing plugins stores");
+        this.commitProgress(-1);
 
-    } else {
-      this.updateMessage("Plugin sources synced. Error accessing sources " + String.join(",", this.warnings));
-    }
+        Iterable<RemoteSource> storeList = remoteSourceRepository.findAll();
+        this.setMaxProgress(2 + Iterables.size(storeList));
 
-    return completed();
-  }
+        remotePackageRepository.deleteAll();
+        // Flushing context to the database as next queries will recreate entities
+        remotePackageRepository.flush();
 
-  private void processRegistrySource(HttpEntity entity, RemoteSource remoteSource) throws StoreParsingException {
-    ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-        false);
+        this.commitProgress(2);
+        CloseableHttpResponse response = null;
 
-    try {
-      RegistryMapper registryMapper = objectMapper.readValue(entity.getContent(), RegistryMapper.class);
-      List<PackageMapper> packages = new ArrayList<>(registryMapper.getPackages().values());
-      List<List<PackageMapper>> chunks = Lists.partition(packages, 100);
+        for (RemoteSource remoteSource : remoteSourceRepository.findAll()) {
+            try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+                LOGGER.debug("Exploring source {} - {}", remoteSource.getName(), remoteSource.getType().getLabel());
+                this.updateMessage("Exploring source " + remoteSource.getName()
+                        + " - " + remoteSource.getType().getLabel());
+                HttpGet httpGet = new HttpGet(remoteSource.getUrl());
+                // TODO replace the following method with the recommended one
+                response = httpclient.execute(httpGet);
+                HttpEntity entity = response.getEntity();
 
-      for (List<PackageMapper> partition : chunks) {
-        List<RemotePackage> remotePackagePartition = new ArrayList<>();
-        for (PackageMapper packageMapper : partition) {
+                if (remoteSource.getType() == null || remoteSource.getType().equals(SourceType.OWLPLUG_REGISTRY)) {
+                    processRegistrySource(entity, remoteSource);
+                } else if (remoteSource.getType().equals(SourceType.OAS_REGISTRY)) {
+                    processOASSource(entity, remoteSource);
+                }
 
-          if (packageMapper.getVersions().containsKey(packageMapper.getLatestVersion())) {
-            String version = packageMapper.getLatestVersion();
-            PackageVersionMapper latestPackage = packageMapper.getVersions()
-                .get(version);
+                EntityUtils.consume(entity);
 
-            RemotePackage remotePackage = RegistryModelAdapter.jsonMapperToEntity(latestPackage);
-            remotePackage.setSlug(packageMapper.getSlug());
-            remotePackage.setRemoteSource(remoteSource);
-            remotePackage.setVersion(version);
-            remotePackagePartition.add(remotePackage);
-          }
-        }
-        remotePackageRepository.saveAll(remotePackagePartition);
-      }
+            } catch (IOException e) {
+                this.warnings.add(remoteSource.getName());
+                this.updateMessage("Error accessing source " + remoteSource.getName() + ". Check your network connectivity");
+                LOGGER.error("Error accessing source {}. Check your network connectivity", remoteSource.getName(), e);
 
-    } catch (Exception e) {
-      throw new StoreParsingException(e);
-    }
-  }
+            } catch (StoreParsingException e) {
+                this.warnings.add(remoteSource.getName());
+                this.updateMessage("Error parsing remote source response");
+                LOGGER.error("Error parsing remote source response", e);
 
-  private void processOASSource(HttpEntity entity, RemoteSource remoteSource) throws StoreParsingException {
-    ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-            false);
-    try {
-      OASRegistry registryMapper = objectMapper.readValue(entity.getContent(), OASRegistry.class);
-      List<OASPackage> packages = new ArrayList<>(registryMapper.getPlugins().values());
-      List<List<OASPackage>> chunks = Lists.partition(packages, 100);
-
-      for (List<OASPackage> partition : chunks) {
-        List<RemotePackage> remotePackagePartition = new ArrayList<>();
-        for (OASPackage packageMapper : partition) {
-
-          if (packageMapper.getVersions().containsKey(packageMapper.getVersion())) {
-            String version = packageMapper.getVersion();
-            OASPlugin latestPlugin = packageMapper.getVersions().get(version);
-
-            RemotePackage remotePackage = OASModelAdapter.mapperToEntity(latestPlugin);
-            remotePackage.setSlug(packageMapper.getSlug());
-            remotePackage.setRemoteSource(remoteSource);
-            remotePackage.setVersion(version);
-
-            // Only add package if at least on bundle is present
-            if (!remotePackage.getBundles().isEmpty()) {
-              remotePackagePartition.add(remotePackage);
+            } finally {
+                this.commitProgress(1);
+                try {
+                    if (response != null) {
+                        response.close();
+                    }
+                } catch (IOException e) {
+                    LOGGER.error("Error closing response", e);
+                }
             }
-          }
         }
-        remotePackageRepository.saveAll(remotePackagePartition);
-      }
 
-    } catch (Exception e) {
-      throw new StoreParsingException(e);
-    }
-  }
+        this.commitProgress(1);
 
-  private static class StoreParsingException extends Exception {
-    StoreParsingException(Exception e) {
-      super(e);
+        if (this.warnings.isEmpty()) {
+            this.updateMessage("Plugin sources synced.");
+
+        } else {
+            this.updateMessage("Plugin sources synced. Error accessing sources " + String.join(",", this.warnings));
+        }
+
+        return completed();
     }
-  }
+
+    private void processRegistrySource(HttpEntity entity, RemoteSource remoteSource) throws StoreParsingException {
+        ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                false);
+
+        try {
+            RegistryMapper registryMapper = objectMapper.readValue(entity.getContent(), RegistryMapper.class);
+            List<PackageMapper> packages = new ArrayList<>(registryMapper.getPackages().values());
+            List<List<PackageMapper>> chunks = Lists.partition(packages, 100);
+
+            for (List<PackageMapper> partition : chunks) {
+                List<RemotePackage> remotePackagePartition = new ArrayList<>();
+                for (PackageMapper packageMapper : partition) {
+
+                    if (packageMapper.getVersions().containsKey(packageMapper.getLatestVersion())) {
+                        String version = packageMapper.getLatestVersion();
+                        PackageVersionMapper latestPackage = packageMapper.getVersions()
+                                .get(version);
+
+                        RemotePackage remotePackage = RegistryModelAdapter.jsonMapperToEntity(latestPackage);
+                        remotePackage.setSlug(packageMapper.getSlug());
+                        remotePackage.setRemoteSource(remoteSource);
+                        remotePackage.setVersion(version);
+                        remotePackagePartition.add(remotePackage);
+                    }
+                }
+                remotePackageRepository.saveAll(remotePackagePartition);
+            }
+
+        } catch (Exception e) {
+            throw new StoreParsingException(e);
+        }
+    }
+
+    private void processOASSource(HttpEntity entity, RemoteSource remoteSource) throws StoreParsingException {
+        ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                false);
+        try {
+            OASRegistry registryMapper = objectMapper.readValue(entity.getContent(), OASRegistry.class);
+            List<OASPackage> packages = new ArrayList<>(registryMapper.getPlugins().values());
+            List<List<OASPackage>> chunks = Lists.partition(packages, 100);
+
+            for (List<OASPackage> partition : chunks) {
+                List<RemotePackage> remotePackagePartition = new ArrayList<>();
+                for (OASPackage packageMapper : partition) {
+
+                    if (packageMapper.getVersions().containsKey(packageMapper.getVersion())) {
+                        String version = packageMapper.getVersion();
+                        OASPlugin latestPlugin = packageMapper.getVersions().get(version);
+
+                        RemotePackage remotePackage = OASModelAdapter.mapperToEntity(latestPlugin);
+                        remotePackage.setSlug(packageMapper.getSlug());
+                        remotePackage.setRemoteSource(remoteSource);
+                        remotePackage.setVersion(version);
+
+                        // Only add package if at least on bundle is present
+                        if (!remotePackage.getBundles().isEmpty()) {
+                            remotePackagePartition.add(remotePackage);
+                        }
+                    }
+                }
+                remotePackageRepository.saveAll(remotePackagePartition);
+            }
+
+        } catch (Exception e) {
+            throw new StoreParsingException(e);
+        }
+    }
+
+    private static class StoreParsingException extends Exception {
+        StoreParsingException(Exception e) {
+            super(e);
+        }
+    }
 }

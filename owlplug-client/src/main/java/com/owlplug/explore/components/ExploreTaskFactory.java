@@ -15,11 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.components;
 
 import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.components.BaseTaskFactory;
+import com.owlplug.core.components.TaskRunner;
 import com.owlplug.core.tasks.SimpleEventListener;
 import com.owlplug.core.tasks.TaskExecutionContext;
 import com.owlplug.core.utils.FileUtils;
@@ -29,61 +30,61 @@ import com.owlplug.explore.repositories.RemoteSourceRepository;
 import com.owlplug.explore.tasks.BundleInstallTask;
 import com.owlplug.explore.tasks.SourceSyncTask;
 import com.owlplug.plugin.components.PluginTaskFactory;
+import org.springframework.stereotype.Component;
+
 import java.io.File;
 import java.util.ArrayList;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import java.util.Collection;
 
 @Component
 public class ExploreTaskFactory extends BaseTaskFactory {
 
-  @Autowired
-  private ApplicationDefaults applicationDefaults;
-  @Autowired
-  private PluginTaskFactory pluginTaskFactory;
-  @Autowired
-  private RemoteSourceRepository remoteSourceRepository;
-  @Autowired
-  private RemotePackageRepository remotePackageRepository;
+    private final ApplicationDefaults applicationDefaults;
+    private final PluginTaskFactory pluginTaskFactory;
+    private final RemoteSourceRepository remoteSourceRepository;
+    private final RemotePackageRepository remotePackageRepository;
 
-  private ArrayList<SimpleEventListener> syncSourcesListeners = new ArrayList<>();
+    private final Collection<SimpleEventListener> syncSourcesListeners = new ArrayList<>();
 
+    public ExploreTaskFactory(final TaskRunner taskRunner, final ApplicationDefaults applicationDefaults,
+                              final PluginTaskFactory pluginTaskFactory, final RemoteSourceRepository remoteSourceRepository,
+                              final RemotePackageRepository remotePackageRepository) {
+        super(taskRunner);
+        this.applicationDefaults = applicationDefaults;
+        this.pluginTaskFactory = pluginTaskFactory;
+        this.remoteSourceRepository = remoteSourceRepository;
+        this.remotePackageRepository = remotePackageRepository;
+    }
 
-  /**
-   * Creates a {@link SourceSyncTask} and binds listeners to the success callback.
-   * 
-   * @return
-   */
-  public TaskExecutionContext createSourceSyncTask() {
+    /**
+     * Creates a {@link SourceSyncTask} and binds listeners to the success callback.
+     *
+     * @return {@link TaskExecutionContext} instance
+     */
+    public TaskExecutionContext createSourceSyncTask() {
+        final var task = new SourceSyncTask(remoteSourceRepository, remotePackageRepository);
+        task.setOnSucceeded(e -> notifyListeners(syncSourcesListeners));
+        return create(task);
+    }
 
-    SourceSyncTask task = new SourceSyncTask(remoteSourceRepository, remotePackageRepository);
-    task.setOnSucceeded(e -> {
-      notifyListeners(syncSourcesListeners);
-    });
-    return create(task);
-  }
+    /**
+     * Creates a task to download and installs a package in a directory.
+     *
+     * @param bundle          - package bundle to retrieve
+     * @param targetDirectory - target install directory
+     * @return task execution context
+     */
+    public TaskExecutionContext createBundleInstallTask(PackageBundle bundle, File targetDirectory) {
+        final var path = FileUtils.convertPath(targetDirectory.getAbsolutePath());
+        return create(new BundleInstallTask(bundle, targetDirectory, applicationDefaults))
+                .setOnSucceeded(e -> pluginTaskFactory.createPluginScanTask(path).scheduleNow());
+    }
 
+    public void addSyncSourcesListener(SimpleEventListener eventListener) {
+        syncSourcesListeners.add(eventListener);
+    }
 
-  /**
-   * Creates a task to download and installs a package in a directory.
-   * @param bundle - package bundle to retrieve
-   * @param targetDirectory - target install directory
-   * @return task execution context
-   */
-  public TaskExecutionContext createBundleInstallTask(PackageBundle bundle, File targetDirectory) {
-    String path = FileUtils.convertPath(targetDirectory.getAbsolutePath());
-    return create(new BundleInstallTask(bundle, targetDirectory, applicationDefaults))
-        .setOnSucceeded(e -> pluginTaskFactory.createPluginScanTask(path).scheduleNow());
-  }
-
-
-
-  public void addSyncSourcesListener(SimpleEventListener eventListener) {
-    syncSourcesListeners.add(eventListener);
-  }
-
-  public void removeSyncSourcesListener(SimpleEventListener eventListener) {
-    syncSourcesListeners.remove(eventListener);
-  }
-
+    public void removeSyncSourcesListener(SimpleEventListener eventListener) {
+        syncSourcesListeners.remove(eventListener);
+    }
 }

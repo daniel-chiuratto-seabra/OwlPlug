@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.ui;
 
 import com.owlplug.core.components.ApplicationDefaults;
@@ -24,34 +24,30 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
 import javafx.util.Callback;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class PluginListCellFactory implements Callback<ListView<Plugin>, ListCell<Plugin>> {
 
-  private ApplicationDefaults applicationDefaults;
+    private final ApplicationDefaults applicationDefaults;
 
-  public PluginListCellFactory(ApplicationDefaults applicationDefaults) {
+    @Override
+    public ListCell<Plugin> call(ListView<Plugin> arg0) {
+        return new ListCell<>() {
+            private final ImageView imageView = new ImageView();
 
-    this.applicationDefaults = applicationDefaults;
-  }
-
-  @Override
-  public ListCell<Plugin> call(ListView<Plugin> arg0) {
-    return new ListCell<>() {
-      private ImageView imageView = new ImageView();
-
-      @Override
-      public void updateItem(Plugin plugin, boolean empty) {
-        super.updateItem(plugin, empty);
-        if (empty) {
-          setText(null);
-          setGraphic(null);
-        } else {
-          imageView.setImage(applicationDefaults.getPluginFormatIcon(plugin.getFormat()));
-          setText(plugin.getName());
-          setGraphic(imageView);
-        }
-      }
-    };
-  }
-
+            @Override
+            public void updateItem(final Plugin plugin, final boolean isEmpty) {
+                super.updateItem(plugin, isEmpty);
+                if (isEmpty) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    imageView.setImage(applicationDefaults.getPluginFormatIcon(plugin.getFormat()));
+                    setText(plugin.getName());
+                    setGraphic(imageView);
+                }
+            }
+        };
+    }
 }

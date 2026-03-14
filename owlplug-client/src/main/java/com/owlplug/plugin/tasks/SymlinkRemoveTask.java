@@ -15,41 +15,42 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.tasks;
 
 import com.owlplug.core.tasks.AbstractTask;
 import com.owlplug.core.tasks.TaskException;
 import com.owlplug.core.tasks.TaskResult;
 import com.owlplug.plugin.model.Symlink;
+
 import java.io.File;
 
 public class SymlinkRemoveTask extends AbstractTask {
 
-  protected Symlink symlink;
+    protected Symlink symlink;
 
-  public SymlinkRemoveTask(Symlink symlink) {
-    this.symlink = symlink;
-    setName("Remove symlink");
-  }
-
-  @Override
-  protected TaskResult start() throws Exception {
-
-    this.updateProgress(-1, 1);
-    this.updateMessage("Deleting directory " + symlink.getName() + " ...");
-
-    File symlinkFile = new File(symlink.getPath());
-    
-    if (!symlinkFile.delete()) {
-      this.updateProgress(1, 1);
-      this.updateMessage("Error deleting symlink: " + symlink.getName());
-      throw new TaskException("Error deleting symlink: " + symlink.getName());
+    public SymlinkRemoveTask(final Symlink symlink) {
+        this.symlink = symlink;
+        setName("Remove symlink");
     }
-    
-    this.updateProgress(1, 1);
-    this.updateMessage("Symlink successfully deleted");
 
-    return completed();
-  }
+    @Override
+    protected TaskResult start() throws Exception {
+
+        updateProgress(-1, 1);
+        updateMessage("Deleting directory %s ...".formatted(symlink.getName()));
+
+        final var symlinkFile = new File(symlink.getPath());
+
+        if (!symlinkFile.delete()) {
+            updateProgress(1, 1);
+            updateMessage("Error deleting symlink: %s".formatted(symlink.getName()));
+            throw new TaskException("Error deleting symlink: %s".formatted(symlink.getName()));
+        }
+
+        updateProgress(1, 1);
+        updateMessage("Symlink successfully deleted");
+
+        return completed();
+    }
 }

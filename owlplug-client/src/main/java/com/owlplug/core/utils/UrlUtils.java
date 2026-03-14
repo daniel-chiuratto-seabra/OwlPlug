@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.utils;
 
 import java.net.URLEncoder;
@@ -23,29 +23,29 @@ import java.nio.charset.StandardCharsets;
 
 public class UrlUtils {
 
-  /**
-   * Replaces spaces with url char %20.
-   * 
-   * @param url - The url
-   * @return url without space chars
-   */
-  public static String fixSpaces(String url) {
+    /**
+     * Replaces spaces with url char %20.
+     *
+     * @param url - The url
+     * @return url without space chars
+     */
+    public static String fixSpaces(String url) {
 
-    if (url == null) {
-      return null;
+        if (url == null) {
+            return null;
+        }
+        return url.replace(" ", "%20");
     }
-    return url.replace(" ", "%20");
-  }
 
-  /**
-   * Translates a string into application/x-www-form-urlencodedformat using UTF-8
-   * encoding.
-   * 
-   * @param query - the query parameter to encode
-   * @return an encoded query parameter
-   */
-  public static String encodeQuery(String query) {
-    return URLEncoder.encode(query, StandardCharsets.UTF_8);
-  }
+    /**
+     * Translates a string into application/x-www-form-urlencodedformat using UTF-8
+     * encoding.
+     *
+     * @param query - the query parameter to encode
+     * @return an encoded query parameter
+     */
+    public static String encodeQuery(String query) {
+        return URLEncoder.encode(query, StandardCharsets.UTF_8);
+    }
 
 }

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.auth.model;
 
 import com.owlplug.auth.ui.AccountItem;
@@ -25,74 +25,60 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * OwlPlug JPA Entity class to handle users accounts information.
+ * Represents a user account within the OwlPlug application, persisted as a JPA entity.
+ * This class stores essential user information such as a unique identifier, name,
+ * profile icon URL, and the associated authentication provider. It also maintains
+ * a one-to-one relationship with {@link GoogleCredential} for storing OAuth 2.0 tokens.
+ * Implements {@link AccountItem} for compatibility with UI components.
  */
+@Data
 @Entity
+@NoArgsConstructor
 public class UserAccount implements AccountItem {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
+    /**
+     * The unique identifier for the user account in the database.
+     * This is an auto-generated primary key.
+     */
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-  private String name;
-  private String iconUrl;
-  private UserAccountProvider accountProvider;
-  @OneToOne(cascade = CascadeType.REMOVE, optional = true)
-  private GoogleCredential credential;
+    /**
+     * The display name of the user account.
+     */
+    private String name;
 
-  public UserAccount() {
+    /**
+     * The URL to the user's profile icon or avatar.
+     */
+    private String iconUrl;
 
-  }
+    /**
+     * The authentication provider associated with this user account (e.g., Google).
+     */
+    private UserAccountProvider accountProvider;
 
-  public UserAccount(UserAccountProvider accountProvider) {
-    this.accountProvider = accountProvider;
+    /**
+     * The Google API credential associated with this user account, if applicable.
+     * This relationship is one-to-one and the credential will be removed if the account is deleted.
+     */
+    @OneToOne(cascade = CascadeType.REMOVE, optional = true)
+    private GoogleCredential credential;
 
-  }
-
-  public Long getId() {
-    return this.id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
-
-  public String getKey() {
-    return Long.toString(id);
-  }
-
-  public UserAccountProvider getAccountProvider() {
-    return accountProvider;
-  }
-
-  public void setAccountProvider(UserAccountProvider accountProvider) {
-    this.accountProvider = accountProvider;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getIconUrl() {
-    return iconUrl;
-  }
-
-  public void setIconUrl(String iconUrl) {
-    this.iconUrl = iconUrl;
-  }
-
-  public GoogleCredential getCredential() {
-    return credential;
-  }
-
-  public void setCredential(GoogleCredential credential) {
-    this.credential = credential;
-  }
-
+    /**
+     * Returns a unique key for this user account, derived from its database ID.
+     * This method is part of the {@link AccountItem} interface, providing a
+     * string representation suitable for identification in UI components or maps.
+     *
+     * @return A string representation of the user account's unique identifier.
+     */
+    public String getKey() {
+        // Convert the Long type 'id' to its String representation.
+        return Long.toString(id);
+    }
 }

@@ -26,85 +26,84 @@ import com.owlplug.project.repositories.DawProjectRepository;
 import com.owlplug.project.tasks.discovery.ableton.AbletonProjectExplorer;
 import com.owlplug.project.tasks.discovery.reaper.ReaperProjectExplorer;
 import com.owlplug.project.tasks.discovery.studioone.StudioOneProjectExplorer;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
 public class ProjectSyncTask extends AbstractTask {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectSyncTask.class);
 
-  private DawProjectRepository projectRepository;
-  private List<String> projectDirectories;
+    private final DawProjectRepository projectRepository;
+    private final List<String> projectDirectories;
 
-  public ProjectSyncTask(DawProjectRepository projectRepository,
-                         List<String> projectDirectories) {
-    this.projectRepository = projectRepository;
-    this.projectDirectories = projectDirectories;
-    setName("Sync DAW projects");
-  }
-
-
-  @Override
-  protected TaskResult start() throws Exception {
-
-    log.debug("Starting project sync task");
-    this.updateProgress(0,1);
-
-    projectRepository.deleteAll();
-
-    // Collect files from all project directories
-    List<File> baseFiles = new ArrayList<>();
-    for (String directory : projectDirectories) {
-      File dir = new File(directory);
-      this.updateMessage("Syncing projects from: " + dir.getAbsolutePath());
-      if (dir.isDirectory()) {
-        baseFiles.addAll(FileUtils.listUniqueFilesAndDirs(dir));
-      }
+    public ProjectSyncTask(final DawProjectRepository projectRepository, final List<String> projectDirectories) {
+        this.projectRepository = projectRepository;
+        this.projectDirectories = projectDirectories;
+        setName("Sync DAW projects");
     }
 
-    // Filter collected files
-    List<File> filteredFiles = baseFiles.stream()
-                                   // Filter out HFS metadata files starting with "._"
-                                   .filter(file -> !file.getName().startsWith("._"))
-                                   .toList();
+    @Override
+    protected TaskResult start() throws Exception {
+        LOGGER.debug("Starting project sync task");
+        updateProgress(0, 1);
 
-    this.setMaxProgress(filteredFiles.size());
+        projectRepository.deleteAll();
 
-    // Create explorer instances once, outside the loop (they are stateless)
-    AbletonProjectExplorer abletonExplorer = new AbletonProjectExplorer();
-    ReaperProjectExplorer reaperExplorer = new ReaperProjectExplorer();
-    StudioOneProjectExplorer studioOneExplorer = new StudioOneProjectExplorer();
-
-    for (File file : filteredFiles) {
-      this.commitProgress(1);
-
-      if (abletonExplorer.canExploreFile(file)) {
-        this.updateMessage("Analyzing Ableton file: " + file.getAbsolutePath());
-        DawProject project = abletonExplorer.explore(file);
-        if (project != null) {
-          projectRepository.save(project);
+        // Collect files from all project directories
+        final var baseFiles = new ArrayList<File>();
+        for (final var directory : projectDirectories) {
+            final var dir = new File(directory);
+            updateMessage("Syncing projects from: %s".formatted(dir.getAbsolutePath()));
+            if (dir.isDirectory()) {
+                baseFiles.addAll(FileUtils.listUniqueFilesAndDirs(dir));
+            }
         }
-      } else if (reaperExplorer.canExploreFile(file)) {
-        this.updateMessage("Analyzing Reaper file: " + file.getAbsolutePath());
-        DawProject project = reaperExplorer.explore(file);
-        if (project != null) {
-          projectRepository.save(project);
+
+        // Filter collected files
+        final var filteredFiles = baseFiles.stream()
+                // Filter out HFS metadata files starting with "._"
+                .filter(file -> !file.getName().startsWith("._"))
+                .toList();
+
+        setMaxProgress(filteredFiles.size());
+
+        // Create explorer instances once, outside the loop (they are stateless)
+        final var abletonExplorer = new AbletonProjectExplorer();
+        final var reaperExplorer = new ReaperProjectExplorer();
+        final var studioOneExplorer = new StudioOneProjectExplorer();
+
+        for (final var file : filteredFiles) {
+            commitProgress(1);
+
+            // Explores and persists a project from a matching file explorer
+            if (abletonExplorer.canExploreFile(file)) {
+                updateMessage("Analyzing Ableton file: %s".formatted(file.getAbsolutePath()));
+                final var project = abletonExplorer.explore(file);
+                if (project != null) {
+                    projectRepository.save(project);
+                }
+            } else if (reaperExplorer.canExploreFile(file)) {
+                updateMessage("Analyzing Reaper file: %s".formatted(file.getAbsolutePath()));
+                final var project = reaperExplorer.explore(file);
+                if (project != null) {
+                    projectRepository.save(project);
+                }
+            } else if (studioOneExplorer.canExploreFile(file)) {
+                updateMessage("Analyzing Studio One file: %s".formatted(file.getAbsolutePath()));
+                final var project = studioOneExplorer.explore(file);
+                if (project != null) {
+                    projectRepository.save(project);
+                }
+            }
         }
-      } else if (studioOneExplorer.canExploreFile(file)) {
-        this.updateMessage("Analyzing Studio One file: " + file.getAbsolutePath());
-        DawProject project = studioOneExplorer.explore(file);
-        if (project != null) {
-          projectRepository.save(project);
-        }
-      }
+
+        updateMessage("All projects are synchronized");
+        updateProgress(1, 1);
+
+        return completed();
     }
-
-    this.updateMessage("All projects are synchronized");
-    this.updateProgress(1,1);
-
-    return completed();
-  }
 }

@@ -15,14 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.auth.model;
 
 /**
- * Enumeration of OwlPlug OAuth accounts providers.
- *
+ * Enumerates the supported OAuth account providers for user authentication within OwlPlug.
+ * Each constant represents a different third-party service that users can link
+ * to their OwlPlug account for various functionalities, such as cloud storage
+ * or credential management.
  */
 public enum UserAccountProvider {
-  GOOGLE, DROPBOX
-
+    /**
+     * Represents Google as an authentication and service provider.
+     * Used for integrating with Google APIs and services.
+     */
+    GOOGLE,
+    /**
+     * Represents Dropbox as a cloud storage and service provider.
+     * Used for integrating with Dropbox APIs and services.
+     */
+    DROPBOX
 }

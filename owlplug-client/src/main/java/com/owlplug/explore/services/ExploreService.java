@@ -21,6 +21,8 @@ package com.owlplug.explore.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
 import com.owlplug.core.model.RuntimePlatform;
 import com.owlplug.core.services.BaseService;
 import com.owlplug.explore.components.ExploreTaskFactory;
@@ -38,10 +40,7 @@ import com.owlplug.explore.repositories.RemotePackageRepository;
 import com.owlplug.explore.repositories.RemoteSourceRepository;
 import com.owlplug.plugin.model.PluginFormat;
 import com.owlplug.plugin.services.PluginService;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import jakarta.annotation.PostConstruct;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -50,263 +49,279 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import jakarta.annotation.PostConstruct;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class ExploreService extends BaseService {
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  @Autowired
-  private RemoteSourceRepository remoteSourceRepository;
-  @Autowired
-  private RemotePackageRepository remotePackageRepository;
-  @Autowired
-  private ExploreTaskFactory exploreTaskFactory;
-  @Autowired
-  private PluginService pluginService;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExploreService.class);
 
-  @PostConstruct
-  private void init() {
+    private final RemoteSourceRepository remoteSourceRepository;
+    private final RemotePackageRepository remotePackageRepository;
+    private final ExploreTaskFactory exploreTaskFactory;
+    private final PluginService pluginService;
 
-    RemoteSource owlplugRegistry = remoteSourceRepository.findByUrl(this.getApplicationDefaults().getOwlPlugRegistryUrl());
-
-    if (owlplugRegistry == null) {
-      owlplugRegistry = new RemoteSource();
-      owlplugRegistry.setName("OwlPlug Registry");
+    public ExploreService(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                          final RemoteSourceRepository remoteSourceRepository, final RemotePackageRepository remotePackageRepository,
+                          final ExploreTaskFactory exploreTaskFactory, final PluginService pluginService) {
+        super(applicationDefaults, applicationPreferences);
+        this.remoteSourceRepository = remoteSourceRepository;
+        this.remotePackageRepository = remotePackageRepository;
+        this.exploreTaskFactory = exploreTaskFactory;
+        this.pluginService = pluginService;
     }
-    owlplugRegistry.setUrl(this.getApplicationDefaults().getOwlPlugRegistryUrl());
-    owlplugRegistry.setDisplayUrl("https://registry.owlplug.com");
-    owlplugRegistry.setType(SourceType.OWLPLUG_REGISTRY);
 
-    remoteSourceRepository.save(owlplugRegistry);
+    @PostConstruct
+    private void init() {
 
-    RemoteSource OASRegistry = remoteSourceRepository.findByUrl(this.getApplicationDefaults().getOpenAudioRegistryUrl());
+        RemoteSource owlplugRegistry = remoteSourceRepository.findByUrl(this.getApplicationDefaults().getOwlPlugRegistryUrl());
 
-    if (OASRegistry == null) {
-      OASRegistry = new RemoteSource();
-      OASRegistry.setName("Open Audio Registry");
-    }
-    OASRegistry.setUrl(this.getApplicationDefaults().getOpenAudioRegistryUrl());
-    OASRegistry.setDisplayUrl("https://github.com/open-audio-stack");
-    OASRegistry.setType(SourceType.OAS_REGISTRY);
-
-    remoteSourceRepository.save(OASRegistry);
-  }
-
-  /**
-   * Triggers Store sync task.
-   */
-  public void syncSources() {
-    exploreTaskFactory.createSourceSyncTask().schedule();
-  }
-
-  public Iterable<RemoteSource> getRemoteSources() {
-    return remoteSourceRepository.findAll();
-  }
-
-  public RemoteSource getRemoteSourceByUrl(String url) {
-    return remoteSourceRepository.findByUrl(url);
-  }
-
-  /**
-   * Retrieves packages from store with name matching the given criteria and
-   * compatible with the current platform.
-   *
-   * @param criteriaList criteria list
-   * @return list of remote packages
-   */
-  public Iterable<RemotePackage> getRemotePackages(List<ExploreFilterCriteria> criteriaList) {
-    Specification<RemotePackage> spec = RemotePackageRepository.sourceEnabled()
-        .and(RemotePackageRepository.fetchBundlesAndTargets());
-    spec = spec.and(ExploreCriteriaAdapter.toSpecification(criteriaList));
-
-    return remotePackageRepository.findAll(spec);
-  }
-
-  public Iterable<RemotePackage> getPackagesByName(String name) {
-    return remotePackageRepository.findByNameContainingIgnoreCase(name);
-  }
-
-  /**
-   * Find the best bundle from a package based on the user current platform.
-   *
-   * @param remotePackage - The remote package
-   */
-  public PackageBundle findBestBundle(RemotePackage remotePackage) {
-
-    RuntimePlatform runtimePlatform = this.getApplicationDefaults().getRuntimePlatform();
-
-    // Look for bundles matching runtimePlatform
-    for (PackageBundle bundle : remotePackage.getBundles()) {
-      for (String platform : bundle.getTargets()) {
-        if (platform.equals(runtimePlatform.getTag())
-            || platform.equals(runtimePlatform.getOperatingSystem().getCode())) {
-          return bundle;
+        if (owlplugRegistry == null) {
+            owlplugRegistry = new RemoteSource();
+            owlplugRegistry.setName("OwlPlug Registry");
         }
-      }
-    }
+        owlplugRegistry.setUrl(this.getApplicationDefaults().getOwlPlugRegistryUrl());
+        owlplugRegistry.setDisplayUrl("https://registry.owlplug.com");
+        owlplugRegistry.setType(SourceType.OWLPLUG_REGISTRY);
 
-    // Look for bundles compatibles with current runtimePlatform
-    for (PackageBundle bundle : remotePackage.getBundles()) {
-      for (String platformTag : bundle.getTargets()) {
-        for (String compatibleTag : runtimePlatform.getCompatiblePlatformsTags()) {
-          if (platformTag.equals(compatibleTag)) {
-            return bundle;
-          }
+        remoteSourceRepository.save(owlplugRegistry);
+
+        RemoteSource OASRegistry = remoteSourceRepository.findByUrl(this.getApplicationDefaults().getOpenAudioRegistryUrl());
+
+        if (OASRegistry == null) {
+            OASRegistry = new RemoteSource();
+            OASRegistry.setName("Open Audio Registry");
         }
-      }
-    }
-    return null;
-  }
+        OASRegistry.setUrl(this.getApplicationDefaults().getOpenAudioRegistryUrl());
+        OASRegistry.setDisplayUrl("https://github.com/open-audio-stack");
+        OASRegistry.setType(SourceType.OAS_REGISTRY);
 
-  public RemoteSource fetchSourceFromRemoteUrl(String url) {
-
-    HttpGet httpGet = new HttpGet(url);
-
-    try (CloseableHttpClient httpclient = HttpClients.createDefault();
-         CloseableHttpResponse response = httpclient.execute(httpGet)) {
-
-      HttpEntity entity = response.getEntity();
-      String responseContent = new String(entity.getContent().readAllBytes(), StandardCharsets.UTF_8);
-
-      RemoteSource remoteSource = getSourceFromRegistrySpec(responseContent);
-
-      if (remoteSource != null) {
-        remoteSource.setUrl(url);
-        remoteSource.setType(SourceType.OWLPLUG_REGISTRY);
-        return remoteSource;
-      }
-
-      remoteSource = getSourceFromOASRegistrySpec(responseContent);
-
-      if (remoteSource != null) {
-        remoteSource.setUrl(url);
-        remoteSource.setType(SourceType.OAS_REGISTRY);
-        return remoteSource;
-      }
-
-      EntityUtils.consume(entity);
-      return null;
-
-    } catch (IOException e) {
-      log.error("Error accessing store: Check your network connectivity", e);
-      return null;
+        remoteSourceRepository.save(OASRegistry);
     }
 
-  }
+    /**
+     * Triggers Store sync task.
+     */
+    public void syncSources() {
+        exploreTaskFactory.createSourceSyncTask().schedule();
+    }
 
-  /**
-   * Creates a RemoteSource instance from a raw OwlPlug registry content.
-   *
-   * @param content Registry content
-   * @return created remote source instance, null if an error occurs
-   */
-  private RemoteSource getSourceFromRegistrySpec(String content) {
+    public Iterable<RemoteSource> getRemoteSources() {
+        return remoteSourceRepository.findAll();
+    }
 
-    try {
-      ObjectMapper objectMapper = new ObjectMapper().configure(
-          DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-      RegistryMapper registryMapper = objectMapper.readValue(content, RegistryMapper.class);
-      if (registryMapper.getPackages() == null) {
+    public RemoteSource getRemoteSourceByUrl(String url) {
+        return remoteSourceRepository.findByUrl(url);
+    }
+
+    /**
+     * Retrieves packages from store with name matching the given criteria and
+     * compatible with the current platform.
+     *
+     * @param criteriaList criteria list
+     * @return list of remote packages
+     */
+    public Iterable<RemotePackage> getRemotePackages(List<ExploreFilterCriteria> criteriaList) {
+        Specification<RemotePackage> spec = RemotePackageRepository.sourceEnabled()
+                .and(RemotePackageRepository.fetchBundlesAndTargets());
+        spec = spec.and(ExploreCriteriaAdapter.toSpecification(criteriaList));
+
+        return remotePackageRepository.findAll(spec);
+    }
+
+    public Iterable<RemotePackage> getPackagesByName(String name) {
+        return remotePackageRepository.findByNameContainingIgnoreCase(name);
+    }
+
+    /**
+     * Find the best bundle from a package based on the user's current platform.
+     *
+     * @param remotePackage - The remote package
+     */
+    public PackageBundle findBestBundle(RemotePackage remotePackage) {
+
+        RuntimePlatform runtimePlatform = this.getApplicationDefaults().getRuntimePlatform();
+
+        // Look for bundles matching runtimePlatform
+        for (PackageBundle bundle : remotePackage.getBundles()) {
+            for (String platform : bundle.getTargets()) {
+                if (platform.equals(runtimePlatform.getTag())
+                        || platform.equals(runtimePlatform.getOperatingSystem().getCode())) {
+                    return bundle;
+                }
+            }
+        }
+
+        // Look for bundles compatibles with the current runtimePlatform
+        for (PackageBundle bundle : remotePackage.getBundles()) {
+            for (String platformTag : bundle.getTargets()) {
+                for (String compatibleTag : runtimePlatform.getCompatiblePlatformsTags()) {
+                    if (platformTag.equals(compatibleTag)) {
+                        return bundle;
+                    }
+                }
+            }
+        }
         return null;
-      }
-      return RegistryModelAdapter.jsonMapperToEntity(registryMapper);
-    } catch (JsonProcessingException e) {
-      log.debug("Content don't match the Store spec", e);
-      return null;
-    }
-  }
-
-  /**
-   * Creates a RemoteSource instance from a raw OAS registry content.
-   *
-   * @param content Registry content
-   * @return created remote source instance, null if an error occurs
-   */
-  private RemoteSource getSourceFromOASRegistrySpec(String content) {
-
-    try {
-      ObjectMapper objectMapper = new ObjectMapper().configure(
-              DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-      OASRegistry registryMapper = objectMapper.readValue(content, OASRegistry.class);
-
-      if (registryMapper.getPlugins() == null) {
-        return null;
-      }
-
-      return OASModelAdapter.mapperToEntity(registryMapper);
-    } catch (JsonProcessingException e) {
-      log.debug("Content don't match the Store spec", e);
-      return null;
-    }
-  }
-
-
-  public void enableSource(RemoteSource remoteSource, boolean enabled) {
-    remoteSource.setEnabled(enabled);
-    remoteSourceRepository.save(remoteSource);
-  }
-
-  public RemoteSource save(RemoteSource remoteSource) {
-    return remoteSourceRepository.save(remoteSource);
-  }
-
-  public void delete(RemoteSource remoteSource) {
-    remoteSourceRepository.delete(remoteSource);
-  }
-
-  public boolean canDeterminateBundleInstallFolder(PackageBundle bundle) {
-
-    List<PluginFormat> formats = filterEnabledFormats(bundle.getFormats());
-    if (formats.size() == 1) {
-      return true;
-    } else if (formats.size() > 1) {
-      List<String> paths = new ArrayList<>();
-      for (PluginFormat format : formats) {
-        paths.add(this.pluginService.getPrimaryPluginPathByFormat(format));
-      }
-      // check if all path are equals
-      return paths.stream().allMatch(s -> s.equals(paths.get(0)));
     }
 
-    return false;
-  }
+    public RemoteSource fetchSourceFromRemoteUrl(String url) {
 
-  /**
-   * Returns the bundle installation folder based on the plugin format.
-   * Multiple formats can be embedded in the same bundle, in this case
-   * an arbitrary path will be selected between formats.
-   *
-   * @param bundle - bundle to install
-   * @return path to install directory
-   */
-  public String getBundleInstallFolder(PackageBundle bundle) {
+        HttpGet httpGet = new HttpGet(url);
 
-    PluginFormat format = filterEnabledFormats(bundle.getFormats()).getFirst();
-    return pluginService.getPrimaryPluginPathByFormat(format);
+        try (CloseableHttpClient httpclient = HttpClients.createDefault();
 
-  }
+             // TODO replace with the recommended method below
+             CloseableHttpResponse response = httpclient.execute(httpGet)) {
 
-  private List<PluginFormat> filterEnabledFormats(List<String> formats) {
-    List<PluginFormat> filtered = new ArrayList<>();
-    for (String formatVal : formats) {
-      PluginFormat format = PluginFormat.fromBundleString(formatVal);
-      if (this.pluginService.isFormatEnabled(format)) {
-        filtered.add(format);
-      }
+            HttpEntity entity = response.getEntity();
+            String responseContent = new String(entity.getContent().readAllBytes(), StandardCharsets.UTF_8);
+
+            RemoteSource remoteSource = getSourceFromRegistrySpec(responseContent);
+
+            if (remoteSource != null) {
+                remoteSource.setUrl(url);
+                remoteSource.setType(SourceType.OWLPLUG_REGISTRY);
+                return remoteSource;
+            }
+
+            remoteSource = getSourceFromOASRegistrySpec(responseContent);
+
+            if (remoteSource != null) {
+                remoteSource.setUrl(url);
+                remoteSource.setType(SourceType.OAS_REGISTRY);
+                return remoteSource;
+            }
+
+            EntityUtils.consume(entity);
+            return null;
+
+        } catch (IOException e) {
+            LOGGER.error("Error accessing store: Check your network connectivity", e);
+            return null;
+        }
+
     }
-    return filtered;
-  }
 
-  /**
-   * Returns all distinct package creators.
-   *
-   * @return lit of creators
-   */
-  public List<String> getDistinctCreators() {
-    return remotePackageRepository.findDistinctCreators();
-  }
+    /**
+     * Creates a RemoteSource instance from a raw OwlPlug registry content.
+     *
+     * @param content Registry content
+     * @return created remote source instance, null if an error occurs
+     */
+    private RemoteSource getSourceFromRegistrySpec(String content) {
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper().configure(
+                    DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            RegistryMapper registryMapper = objectMapper.readValue(content, RegistryMapper.class);
+            if (registryMapper.getPackages() == null) {
+                return null;
+            }
+            return RegistryModelAdapter.jsonMapperToEntity(registryMapper);
+        } catch (JsonProcessingException e) {
+            LOGGER.debug("Content don't match the Store spec", e);
+            return null;
+        }
+    }
+
+    /**
+     * Creates a RemoteSource instance from a raw OAS registry content.
+     *
+     * @param content Registry content
+     * @return created remote source instance, null if an error occurs
+     */
+    private RemoteSource getSourceFromOASRegistrySpec(String content) {
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper().configure(
+                    DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            OASRegistry registryMapper = objectMapper.readValue(content, OASRegistry.class);
+
+            if (registryMapper.getPlugins() == null) {
+                return null;
+            }
+
+            return OASModelAdapter.mapperToEntity(registryMapper);
+        } catch (JsonProcessingException e) {
+            LOGGER.debug("Content don't match the Store spec", e);
+            return null;
+        }
+    }
+
+
+    public void enableSource(RemoteSource remoteSource, boolean enabled) {
+        remoteSource.setEnabled(enabled);
+        remoteSourceRepository.save(remoteSource);
+    }
+
+    public RemoteSource save(RemoteSource remoteSource) {
+        return remoteSourceRepository.save(remoteSource);
+    }
+
+    public void delete(RemoteSource remoteSource) {
+        remoteSourceRepository.delete(remoteSource);
+    }
+
+    public boolean canDeterminateBundleInstallFolder(PackageBundle bundle) {
+
+        List<PluginFormat> formats = filterEnabledFormats(bundle.getFormats());
+        if (formats.size() == 1) {
+            return true;
+        } else if (formats.size() > 1) {
+            List<String> paths = new ArrayList<>();
+            for (PluginFormat format : formats) {
+                paths.add(this.pluginService.getPrimaryPluginPathByFormat(format));
+            }
+            // check if all paths are equals
+            return paths.stream().allMatch(s -> s.equals(paths.getFirst()));
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns the bundle installation folder based on the plugin format.
+     * Multiple formats can be embedded in the same bundle, in this case
+     * an arbitrary path will be selected between formats.
+     *
+     * @param bundle - bundle to install
+     * @return path to install directory
+     */
+    public String getBundleInstallFolder(PackageBundle bundle) {
+
+        List<PluginFormat> enabledFormats = filterEnabledFormats(bundle.getFormats());
+        if (enabledFormats.isEmpty()) {
+            return null;
+        }
+        PluginFormat format = enabledFormats.getFirst();
+        return pluginService.getPrimaryPluginPathByFormat(format);
+
+    }
+
+    private List<PluginFormat> filterEnabledFormats(List<String> formats) {
+        List<PluginFormat> filtered = new ArrayList<>();
+        for (String formatVal : formats) {
+            PluginFormat format = PluginFormat.fromBundleString(formatVal);
+            if (format != null && this.pluginService.isFormatEnabled(format)) {
+                filtered.add(format);
+            }
+        }
+        return filtered;
+    }
+
+    /**
+     * Returns all distinct package creators.
+     *
+     * @return lit of creators
+     */
+    public List<String> getDistinctCreators() {
+        return remotePackageRepository.findDistinctCreators();
+    }
 }

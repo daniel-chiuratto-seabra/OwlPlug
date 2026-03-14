@@ -24,35 +24,24 @@ import com.owlplug.core.utils.PlatformUtils;
 import javafx.fxml.FXML;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.layout.HBox;
-import org.springframework.stereotype.Controller;
 
-@Controller
-public class PreloaderController extends BaseController {
-  
-  @FXML
-  private Hyperlink owlplugHyperlink;
-  @FXML
-  private Hyperlink statusHyperlink;
-  @FXML
-  private Hyperlink documentationHyperlink;
-  @FXML
-  private Hyperlink roadmapHyperlink;
-  @FXML
-  private HBox contributorsPane;
-  
-  /**
-   * FXML initialize.
-   */
-  public void initialize() {
-    
-    owlplugHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("https://owlplug.com"));
-    statusHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("http://status.owlplug.com"));
-    roadmapHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("https://owlplug.com/roadmap"));
-    documentationHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("https://github.com/DropSnorz/OwlPlug/wiki"));
+public class PreloaderController {
 
-    contributorsPane.getChildren().add(new SlidingLabel(ApplicationDefaults.getContributors()));
+    @FXML private Hyperlink owlplugHyperlink;
+    @FXML private Hyperlink statusHyperlink;
+    @FXML private Hyperlink documentationHyperlink;
+    @FXML private Hyperlink roadmapHyperlink;
+    @FXML private HBox contributorsPane;
 
-  }
+    /**
+     * FXML initialize.
+     */
+    public void initialize() {
+        owlplugHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("https://owlplug.com"));
+        statusHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("http://status.owlplug.com"));
+        roadmapHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("https://owlplug.com/roadmap"));
+        documentationHyperlink.setOnAction((e) -> PlatformUtils.openDefaultBrowser("https://github.com/DropSnorz/OwlPlug/wiki"));
 
-
+        contributorsPane.getChildren().add(new SlidingLabel(ApplicationDefaults.getContributors()));
+    }
 }

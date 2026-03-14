@@ -15,100 +15,98 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.controllers;
 
 import com.owlplug.controls.Dialog;
 import com.owlplug.controls.DialogLayout;
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.controllers.BaseController;
-import com.owlplug.core.utils.PlatformUtils;
+import com.owlplug.core.services.TelemetryService;
 import com.owlplug.plugin.components.PluginTaskFactory;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.Symlink;
 import com.owlplug.plugin.tasks.SymlinkRemoveTask;
 import com.owlplug.plugin.ui.PluginListCellFactory;
-import java.util.Optional;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+
+import java.util.Optional;
+
+import static com.owlplug.core.utils.PlatformUtils.openFromDesktop;
 
 @Controller
 public class SymlinkInfoController extends BaseController {
 
-  @Autowired
-  private PluginTaskFactory taskFactory;
+    private final PluginTaskFactory pluginTaskFactory;
 
-  @FXML
-  private Label directoryPathLabel;
-  @FXML
-  private ListView<Plugin> pluginDirectoryListView;
-  @FXML
-  private Button openLinkButton;
-  @FXML
-  private Button openTargetButton;
-  @FXML
-  private Button deleteLinkButton;
-  @FXML
-  private Label targetPathLabel;
+    @FXML private Label directoryPathLabel;
+    @FXML private ListView<Plugin> pluginDirectoryListView;
+    @FXML private Button openLinkButton;
+    @FXML private Button openTargetButton;
+    @FXML private Button deleteLinkButton;
+    @FXML private Label targetPathLabel;
 
-  private Symlink symlink;
+    private Symlink symlink;
 
-  /**
-   * FXML Initialize.
-   */
-  public void initialize() {
+    public SymlinkInfoController(final PluginTaskFactory pluginTaskFactory, final ApplicationDefaults applicationDefaults,
+                                 final ApplicationPreferences applicationPreferences, final TelemetryService telemetryService,
+                                 final DialogManager dialogManager) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager);
+        this.pluginTaskFactory = pluginTaskFactory;
+    }
 
-    openLinkButton.setGraphic(new ImageView(this.getApplicationDefaults().symlinkImage));
-    openLinkButton.setOnAction(e -> {
-      PlatformUtils.openFromDesktop(symlink.getPath());
-    });
-    
-    openTargetButton.setGraphic(new ImageView(this.getApplicationDefaults().directoryImage));
-    openTargetButton.setOnAction(e -> {
-      PlatformUtils.openFromDesktop(symlink.getTargetPath());
-    });
+    /**
+     * FXML Initialize.
+     */
+    public void initialize() {
+        openLinkButton.setGraphic(new ImageView(this.getApplicationDefaults().symlinkImage));
+        openLinkButton.setOnAction(e -> openFromDesktop(symlink.getPath()));
 
-    pluginDirectoryListView.setCellFactory(new PluginListCellFactory(this.getApplicationDefaults()));
+        openTargetButton.setGraphic(new ImageView(this.getApplicationDefaults().directoryImage));
+        openTargetButton.setOnAction(e -> openFromDesktop(symlink.getTargetPath()));
 
-    deleteLinkButton.setOnAction(e -> {
-      Dialog dialog = this.getDialogManager().newDialog();
-      DialogLayout layout = new DialogLayout();
+        pluginDirectoryListView.setCellFactory(new PluginListCellFactory(this.getApplicationDefaults()));
 
-      layout.setHeading(new Label("Remove directory"));
-      layout.setBody(new Label("Do you really want to delete link " + symlink.getName()
-          + " ? Content will NOT be removed from the target folder."));
+        deleteLinkButton.setOnAction(e -> {
+            Dialog dialog = this.getDialogManager().newDialog();
+            DialogLayout layout = new DialogLayout();
 
-      Button cancelButton = new Button("Cancel");
+            layout.setHeading(new Label("Remove directory"));
+            layout.setBody(new Label("Do you really want to delete link " + symlink.getName()
+                    + " ? Content will NOT be removed from the target folder."));
 
-      cancelButton.setOnAction(cancelEvent -> {
-        dialog.close();
-      });
+            Button cancelButton = new Button("Cancel");
 
-      Button removeButton = new Button("Delete");
-      removeButton.setOnAction(removeEvent -> {
-        dialog.close();
-        taskFactory.create(new SymlinkRemoveTask(symlink))
-            .setOnSucceeded(x -> taskFactory.createPluginScanTask().scheduleNow()).schedule();
-      });
-      removeButton.getStyleClass().add("button-danger");
+            cancelButton.setOnAction(cancelEvent -> dialog.close());
 
-      layout.setActions(removeButton, cancelButton);
-      dialog.setContent(layout);
-      dialog.show();
-    });
-  }
+            Button removeButton = new Button("Delete");
+            removeButton.setOnAction(removeEvent -> {
+                dialog.close();
+                pluginTaskFactory.create(new SymlinkRemoveTask(symlink))
+                        .setOnSucceeded(x -> pluginTaskFactory.createPluginScanTask().scheduleNow()).schedule();
+            });
+            removeButton.getStyleClass().add("button-danger");
 
-  public void setSymlink(Symlink symlink) {
-    this.symlink = symlink;
-    directoryPathLabel.setText(symlink.getPath());
-    pluginDirectoryListView.getItems().setAll(symlink.getPluginList());
-    targetPathLabel.setText(Optional.ofNullable(symlink.getTargetPath()).orElse("Unknown"));
+            layout.setActions(removeButton, cancelButton);
+            dialog.setContent(layout);
+            dialog.show();
+        });
+    }
 
-    openTargetButton.setVisible(symlink.getTargetPath() != null);
-  }
+    public void setSymlink(Symlink symlink) {
+        this.symlink = symlink;
+        directoryPathLabel.setText(symlink.getPath());
+        pluginDirectoryListView.getItems().setAll(symlink.getPluginList());
+        targetPathLabel.setText(Optional.ofNullable(symlink.getTargetPath()).orElse("Unknown"));
+
+        openTargetButton.setVisible(symlink.getTargetPath() != null);
+    }
 
 }

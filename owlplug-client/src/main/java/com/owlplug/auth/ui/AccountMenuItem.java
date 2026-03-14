@@ -15,32 +15,49 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.auth.ui;
 
+import lombok.Data;
+
 /**
- * Account menu objects.
+ * Represents a menu item displayed within an account-related UI component,
+ * such as a dropdown menu for user accounts. This class extends {@link AccountItem}
+ * to provide a textual representation for menu options that are not directly
+ * linked to a specific user account, like "Add Account" or "Manage Accounts".
  */
+@Data
 public class AccountMenuItem implements AccountItem {
 
-  private String text;
+    /**
+     * The display text for this account menu item.
+     */
+    private String text;
 
-  public AccountMenuItem(String text) {
-    super();
-    this.text = text;
-  }
+    /**
+     * Constructs a new {@code AccountMenuItem} with the specified display text.
+     *
+     * @param text The text to be displayed for this menu item.
+     */
+    public AccountMenuItem(String text) {
+        // Call the superclass constructor (Object's default constructor).
+        super();
+        // Assign the provided text to the menu item.
+        this.text = text;
+    }
 
-  public String getText() {
-    return text;
-  }
-
-  public void setText(String text) {
-    this.text = text;
-  }
-
-  @Override
-  public Long getId() {
-    return (long) -1;
-  }
+    /**
+     * Returns a unique identifier for this menu item.
+     * For {@code AccountMenuItem} instances, a fixed value of -1L is returned,
+     * indicating that it does not correspond to a persistent user account.
+     *
+     * @return A fixed {@code Long} value of -1L.
+     */
+    @Override
+    public Long getId() {
+        // Return a fixed ID of -1L to signify that this menu item is not
+        // associated with a real, persistent user account.
+        return (long) -1;
+    }
 
 }

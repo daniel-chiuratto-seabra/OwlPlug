@@ -1,6 +1,10 @@
+#!/bin/bash
+
 ROOT=$(cd "$(dirname "$0")/.."; pwd)
+echo "The ROOT path being used is: $ROOT"
 
 echo $JAVA_HOME
+echo "The JAVA_HOME path being used is: $JAVA_HOME"
 
 ls $JAVA_HOME/include/darwin
 

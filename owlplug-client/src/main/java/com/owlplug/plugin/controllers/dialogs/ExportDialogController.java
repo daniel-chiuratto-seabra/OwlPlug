@@ -19,15 +19,16 @@
 package com.owlplug.plugin.controllers.dialogs;
 
 import com.owlplug.controls.DialogLayout;
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.components.LazyViewRegistry;
 import com.owlplug.core.controllers.dialogs.AbstractDialogController;
+import com.owlplug.core.services.TelemetryService;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.serializer.PluginCSVSerializer;
 import com.owlplug.plugin.model.serializer.PluginJsonSerializer;
 import com.owlplug.plugin.services.PluginService;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -36,100 +37,95 @@ import javafx.scene.control.TextArea;
 import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 @Controller
 public class ExportDialogController extends AbstractDialogController {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExportDialogController.class);
 
-  @Autowired
-  private LazyViewRegistry lazyViewRegistry;
-  @Autowired
-  private PluginService pluginService;
+    private final LazyViewRegistry lazyViewRegistry;
+    private final PluginService pluginService;
 
-  @FXML
-  private ComboBox<String> exportComboBox;
-  @FXML
-  private TextArea exportTextArea;
-  @FXML
-  private Button closeButton;
-  @FXML
-  private Button saveAsButton;
+    @FXML private ComboBox<String> exportComboBox;
+    @FXML private TextArea exportTextArea;
+    @FXML private Button closeButton;
+    @FXML private Button saveAsButton;
 
-  ExportDialogController() {
-    super(650, 500);
-  }
-
-  public void initialize() {
-    closeButton.setOnAction(e -> {
-      this.close();
-    });
-
-    exportComboBox.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
-      refreshView();
-    });
-
-    saveAsButton.setOnAction(event -> {
-
-      FileChooser fileChooser = new FileChooser();
-      fileChooser.setTitle("Save");
-
-      String exportType = exportComboBox.getSelectionModel().getSelectedItem();
-      if ("CSV".equals(exportType)) {
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV File", ".csv"));
-      } else if ("JSON".equals(exportType)) {
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Json File", ".json"));
-      }
-      fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("All Files", "*.*"));
-
-      File file = fileChooser.showSaveDialog(saveAsButton.getScene().getWindow());
-      if (file != null) {
-        try (FileWriter writer = new FileWriter(file)) {
-          writer.write(exportTextArea.getText());
-          writer.flush();
-        } catch (IOException e) {
-          log.error("Error during writing on file {}", file.getAbsolutePath(), e);
-        }
-      }
-    });
-  }
-
-  @Override
-  public void onDialogShow() {
-    refreshView();
-
-  }
-
-  private void refreshView() {
-    Iterable<Plugin> plugins = pluginService.getAllPlugins();
-
-    String exportType = exportComboBox.getSelectionModel().getSelectedItem();
-
-    StringBuilder output = new StringBuilder();
-    if ("CSV".equals(exportType)) {
-      PluginCSVSerializer serializer = new PluginCSVSerializer();
-      output.append(serializer.getHeader());
-      output.append(serializer.serialize(plugins));
-    } else if ("JSON".equals(exportType)) {
-      PluginJsonSerializer serializer = new PluginJsonSerializer();
-      output.append(serializer.serialize(plugins));
+    ExportDialogController(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                           final TelemetryService telemetryService, final DialogManager dialogManager, LazyViewRegistry lazyViewRegistry, PluginService pluginService) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager, 650, 500);
+        this.lazyViewRegistry = lazyViewRegistry;
+        this.pluginService = pluginService;
     }
 
-    exportTextArea.setText(output.toString());
-  }
+    public void initialize() {
+        closeButton.setOnAction(e -> close());
 
-  @Override
-  protected DialogLayout getLayout() {
+        exportComboBox.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> refreshView());
 
-    DialogLayout layout = new DialogLayout();
-    Label title = new Label("Export Plugins");
-    title.getStyleClass().add("heading-3");
-    layout.setHeading(title);
+        saveAsButton.setOnAction(event -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save");
 
-    layout.setBody(lazyViewRegistry.get(LazyViewRegistry.EXPORT_VIEW));
+            String exportType = exportComboBox.getSelectionModel().getSelectedItem();
+            if ("CSV".equals(exportType)) {
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV File", ".csv"));
+            } else if ("JSON".equals(exportType)) {
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Json File", ".json"));
+            }
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("All Files", "*.*"));
 
-    return layout;
-  }
+            File file = fileChooser.showSaveDialog(saveAsButton.getScene().getWindow());
+            if (file != null) {
+                try (FileWriter writer = new FileWriter(file)) {
+                    writer.write(exportTextArea.getText());
+                    writer.flush();
+                } catch (IOException e) {
+                    LOGGER.error("Error during writing on file {}", file.getAbsolutePath(), e);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onDialogShow() {
+        refreshView();
+
+    }
+
+    private void refreshView() {
+        Iterable<Plugin> plugins = pluginService.getAllPlugins();
+
+        String exportType = exportComboBox.getSelectionModel().getSelectedItem();
+
+        StringBuilder output = new StringBuilder();
+        if ("CSV".equals(exportType)) {
+            PluginCSVSerializer serializer = new PluginCSVSerializer();
+            output.append(serializer.getHeader());
+            output.append(serializer.serialize(plugins));
+        } else if ("JSON".equals(exportType)) {
+            PluginJsonSerializer serializer = new PluginJsonSerializer();
+            output.append(serializer.serialize(plugins));
+        }
+
+        exportTextArea.setText(output.toString());
+    }
+
+    @Override
+    protected DialogLayout getLayout() {
+
+        DialogLayout layout = new DialogLayout();
+        Label title = new Label("Export Plugins");
+        title.getStyleClass().add("heading-3");
+        layout.setHeading(title);
+
+        layout.setBody(lazyViewRegistry.get(LazyViewRegistry.EXPORT_VIEW));
+
+        return layout;
+    }
 }

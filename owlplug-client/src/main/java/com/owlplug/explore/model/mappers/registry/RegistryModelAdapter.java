@@ -20,110 +20,102 @@ package com.owlplug.explore.model.mappers.registry;
 
 import com.owlplug.core.utils.UrlUtils;
 import com.owlplug.explore.model.PackageBundle;
-import com.owlplug.explore.model.PackageTag;
 import com.owlplug.explore.model.RemotePackage;
 import com.owlplug.explore.model.RemoteSource;
 import com.owlplug.plugin.model.PluginStage;
 import com.owlplug.plugin.model.PluginType;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import static com.owlplug.core.utils.OperationUtils.getPackageTagList;
+
 public class RegistryModelAdapter {
-  /**
-   * Creates a {@link RemoteSource} entity from a {@link RegistryMapper}.
-   *
-   * @param registryMapper registry json mapper
-   * @return remoteSourceEntity
-   */
-  public static RemoteSource jsonMapperToEntity(RegistryMapper registryMapper) {
-
-    RemoteSource remoteSource = new RemoteSource();
-    remoteSource.setName(registryMapper.getName());
-    remoteSource.setDisplayUrl(registryMapper.getUrl());
-    return remoteSource;
-  }
-
-  /**
-   * Creates a {@link RemotePackage} entity from a {@link PackageVersionMapper}.
-   *
-   * @param packageVersionMapper package json mapper
-   * @return package entity
-   */
-  public static RemotePackage jsonMapperToEntity(PackageVersionMapper packageVersionMapper) {
-    RemotePackage remotePackage = new RemotePackage();
-    remotePackage.setName(packageVersionMapper.getName());
-    remotePackage.setPageUrl(packageVersionMapper.getPageUrl());
-    remotePackage.setScreenshotUrl(UrlUtils.fixSpaces(packageVersionMapper.getScreenshotUrl()));
-    remotePackage.setDonateUrl(UrlUtils.fixSpaces(packageVersionMapper.getDonateUrl()));
-    remotePackage.setCreator(packageVersionMapper.getCreator());
-    remotePackage.setLicense(packageVersionMapper.getLicense());
-    remotePackage.setDescription(packageVersionMapper.getDescription());
-
-    if (packageVersionMapper.getType() != null) {
-      remotePackage.setType(PluginType.fromString(packageVersionMapper.getType()));
+    /**
+     * Creates a {@link RemoteSource} entity from a {@link RegistryMapper}.
+     *
+     * @param registryMapper registry json mapper
+     * @return remoteSourceEntity
+     */
+    public static RemoteSource jsonMapperToEntity(final RegistryMapper registryMapper) {
+        RemoteSource remoteSource = new RemoteSource();
+        remoteSource.setName(registryMapper.getName());
+        remoteSource.setDisplayUrl(registryMapper.getUrl());
+        return remoteSource;
     }
 
-    if (packageVersionMapper.getStage() != null) {
-      remotePackage.setStage(PluginStage.fromString(packageVersionMapper.getStage()));
+    /**
+     * Creates a {@link RemotePackage} entity from a {@link PackageVersionMapper}.
+     *
+     * @param packageVersionMapper package json mapper
+     * @return package entity
+     */
+    public static RemotePackage jsonMapperToEntity(final PackageVersionMapper packageVersionMapper) {
+        RemotePackage remotePackage = new RemotePackage();
+        remotePackage.setName(packageVersionMapper.getName());
+        remotePackage.setPageUrl(packageVersionMapper.getPageUrl());
+        remotePackage.setScreenshotUrl(UrlUtils.fixSpaces(packageVersionMapper.getScreenshotUrl()));
+        remotePackage.setDonateUrl(UrlUtils.fixSpaces(packageVersionMapper.getDonateUrl()));
+        remotePackage.setCreator(packageVersionMapper.getCreator());
+        remotePackage.setLicense(packageVersionMapper.getLicense());
+        remotePackage.setDescription(packageVersionMapper.getDescription());
+
+        if (packageVersionMapper.getType() != null) {
+            remotePackage.setType(PluginType.fromString(packageVersionMapper.getType()));
+        }
+
+        if (packageVersionMapper.getStage() != null) {
+            remotePackage.setStage(PluginStage.fromString(packageVersionMapper.getStage()));
+        }
+
+        HashSet<PackageBundle> bundles = new HashSet<>();
+        if (packageVersionMapper.getBundles() != null) {
+            for (BundleMapper bundleMapper : packageVersionMapper.getBundles()) {
+                PackageBundle bundle = jsonMapperToEntity(bundleMapper, remotePackage.getName());
+                bundle.setRemotePackage(remotePackage);
+                bundles.add(bundle);
+            }
+        }
+        remotePackage.setBundles(bundles);
+        remotePackage.setTags(getPackageTagList(packageVersionMapper.getTags(), remotePackage));
+
+        return remotePackage;
     }
 
-    HashSet<PackageBundle> bundles = new HashSet<>();
-    if (packageVersionMapper.getBundles() != null) {
-      for (BundleMapper bundleMapper : packageVersionMapper.getBundles()) {
-        PackageBundle bundle = jsonMapperToEntity(bundleMapper, remotePackage.getName());
-        bundle.setRemotePackage(remotePackage);
-        bundles.add(bundle);
-      }
+    /**
+     * Creates a {@link PackageBundle} entity from a {@link BundleMapper}.
+     *
+     * @param bundleMapper bundle json bundleMapper
+     * @return bundle entity
+     */
+    public static PackageBundle jsonMapperToEntity(final BundleMapper bundleMapper, final String name) {
+        PackageBundle packageBundle = new PackageBundle();
+
+        String bundleName = name + " - " + String.join(" ", bundleMapper.getTargets());
+        packageBundle.setName(bundleName);
+
+        packageBundle.setDownloadUrl(bundleMapper.getDownloadUrl());
+        packageBundle.setDownloadSha256(bundleMapper.getDownloadSha256());
+        packageBundle.setTargets(bundleMapper.getTargets());
+        packageBundle.setFileSize(bundleMapper.getFileSize());
+
+        if (bundleMapper.getFormats() != null && bundleMapper.getFormats().size() > 0) {
+            List<String> formats = new ArrayList<>(bundleMapper.getFormats());
+            formats.replaceAll(e -> e.equals("vst") ? "vst2" : e.toLowerCase());
+            packageBundle.setFormats(formats);
+
+            // Support undefined formats field with fallback to format
+        } else if (bundleMapper.getFormat() != null) {
+            List<String> formats = new ArrayList<>();
+            formats.add(bundleMapper.getFormat());
+            formats.replaceAll(e -> e.equals("vst") ? "vst2" : e.toLowerCase());
+            packageBundle.setFormats(formats);
+        } else {
+            packageBundle.setFormats(List.of("vst2"));
+        }
+
+        return packageBundle;
     }
-    remotePackage.setBundles(bundles);
-
-    HashSet<PackageTag> tags = new HashSet<>();
-    if (packageVersionMapper.getTags() != null) {
-      for (String tag : packageVersionMapper.getTags()) {
-        tags.add(new PackageTag(tag, remotePackage));
-      }
-    }
-    remotePackage.setTags(tags);
-
-    return remotePackage;
-  }
-
-  /**
-   * Creates a {@link PackageBundle} entity from a {@link BundleMapper}.
-   *
-   * @param bundleMapper bundle json bundleMapper
-   * @return bundle entity
-   */
-  public static PackageBundle jsonMapperToEntity(BundleMapper bundleMapper, String name) {
-
-    PackageBundle packageBundle = new PackageBundle();
-
-    String bundleName = name + " - " + String.join(" ", bundleMapper.getTargets());
-    packageBundle.setName(bundleName);
-
-    packageBundle.setDownloadUrl(bundleMapper.getDownloadUrl());
-    packageBundle.setDownloadSha256(bundleMapper.getDownloadSha256());
-    packageBundle.setTargets(bundleMapper.getTargets());
-    packageBundle.setFileSize(bundleMapper.getFileSize());
-
-    if (bundleMapper.getFormats() != null && bundleMapper.getFormats().size() > 0) {
-      List<String> formats = new ArrayList<>(bundleMapper.getFormats());
-      formats.replaceAll(e -> e.equals("vst") ? "vst2" : e.toLowerCase());
-      packageBundle.setFormats(formats);
-
-    // Support undefined formats field with fallback to format
-    } else if (bundleMapper.getFormat() != null) {
-      List<String> formats = new ArrayList<>();
-      formats.add(bundleMapper.getFormat());
-      formats.replaceAll(e -> e.equals("vst") ? "vst2" : e.toLowerCase());
-      packageBundle.setFormats(formats);
-    } else {
-      packageBundle.setFormats(List.of("vst2"));
-    }
-
-    return packageBundle;
-  }
-
 
 }

@@ -15,56 +15,49 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.model.search;
 
 import com.owlplug.explore.model.RemotePackage;
 import com.owlplug.explore.repositories.RemotePackageRepository;
-import com.owlplug.plugin.model.PluginType;
-import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
+
+import java.util.List;
+
+import static com.owlplug.explore.repositories.RemotePackageRepository.hasCreator;
+import static com.owlplug.explore.repositories.RemotePackageRepository.hasFormat;
+import static com.owlplug.explore.repositories.RemotePackageRepository.hasPlatformTag;
+import static com.owlplug.explore.repositories.RemotePackageRepository.hasTag;
+import static com.owlplug.explore.repositories.RemotePackageRepository.isTyped;
+import static com.owlplug.explore.repositories.RemotePackageRepository.nameContains;
+import static java.lang.String.valueOf;
 
 public class ExploreCriteriaAdapter {
 
-  public static Specification<RemotePackage> toSpecification(List<ExploreFilterCriteria> criteriaList) {
-
-    Specification<RemotePackage> spec = Specification.unrestricted();
-    for (ExploreFilterCriteria criteria : criteriaList) {
-      spec = spec.and(toSpecification(criteria));
-    }
-    return spec;
-
-  }
-
-  public static Specification<RemotePackage> toSpecification(ExploreFilterCriteria criteria) {
-
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.NAME)) {
-      return RemotePackageRepository.nameContains(String.valueOf(criteria.getValue()));
-    }
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.CREATOR)) {
-      return RemotePackageRepository.hasCreator(String.valueOf(criteria.getValue()));
-    }
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.TAG)) {
-      return RemotePackageRepository.hasTag(String.valueOf(criteria.getValue()));
-    }
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.TYPE)) {
-      return RemotePackageRepository.isTyped((PluginType) criteria.getValue());
-    }
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.PLATFORM)) {
-      return RemotePackageRepository.hasPlatformTag(String.valueOf(criteria.getValue()));
-    }
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.PLATFORM_LIST)) {
-      return RemotePackageRepository.hasPlatformTag((List<String>) criteria.getValue());
-    }
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.FORMAT)) {
-      return RemotePackageRepository.hasFormat(String.valueOf(criteria.getValue()));
-    }
-    if (criteria.getFilterType().equals(ExploreFilterCriteriaType.FORMAT_LIST)) {
-      return RemotePackageRepository.hasFormat((List<String>) criteria.getValue());
+    public static Specification<RemotePackage> toSpecification(final List<ExploreFilterCriteria> criteriaList) {
+        Specification<RemotePackage> specification = Specification.unrestricted();
+        for (ExploreFilterCriteria criteria : criteriaList) {
+            specification = specification.and(toSpecification(criteria));
+        }
+        return specification;
     }
 
-    return Specification.unrestricted();
-
-  }
-
+    public static Specification<RemotePackage> toSpecification(final ExploreFilterCriteria exploreFilterCriteria) {
+        return switch (exploreFilterCriteria.getFilterType()) {
+            case NAME -> nameContains(valueOf(exploreFilterCriteria.getValue()));
+            case TAG -> hasTag(valueOf(exploreFilterCriteria.getValue()));
+            case TYPE -> isTyped(exploreFilterCriteria.getValue());
+            case PLATFORM -> hasPlatformTag(valueOf(exploreFilterCriteria.getValue()));
+            case PLATFORM_LIST -> {
+                final List<String> platformTagList = exploreFilterCriteria.getValue();
+                yield hasPlatformTag(platformTagList);
+            }
+            case CREATOR -> hasCreator(valueOf(exploreFilterCriteria.getValue()));
+            case FORMAT -> hasFormat(valueOf(exploreFilterCriteria.getValue()));
+            case FORMAT_LIST -> {
+                final List<String> formatList = exploreFilterCriteria.getValue();
+                yield hasFormat(formatList);
+            }
+        };
+    }
 }

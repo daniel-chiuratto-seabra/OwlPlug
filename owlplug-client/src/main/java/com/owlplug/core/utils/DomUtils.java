@@ -18,40 +18,42 @@
 
 package com.owlplug.core.utils;
 
-import java.util.ArrayList;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DomUtils {
 
-  public static NodeList getDirectDescendantElementsByTagName(Element element, String name) {
+    public static NodeList getDirectDescendantElementsByTagName(Element element, String name) {
 
-    SimpleNodeList nodeList = new SimpleNodeList();
-    for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
-      if (child instanceof Element && name.equals(child.getNodeName())) {
-        nodeList.add(child);
-      }
-    }
-    return nodeList;
-  }
-
-  public static class SimpleNodeList implements NodeList {
-
-    private ArrayList<Node> list = new ArrayList<>();
-
-    @Override
-    public Node item(int index) {
-      return list.get(index);
+        SimpleNodeList nodeList = new SimpleNodeList();
+        for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
+            if (child instanceof Element && name.equals(child.getNodeName())) {
+                nodeList.add(child);
+            }
+        }
+        return nodeList;
     }
 
-    @Override
-    public int getLength() {
-      return list.size();
-    }
+    public static class SimpleNodeList implements NodeList {
 
-    protected void add(Node node) {
-      list.add(node);
+        private final List<Node> list = new ArrayList<>();
+
+        @Override
+        public Node item(int index) {
+            return list.get(index);
+        }
+
+        @Override
+        public int getLength() {
+            return list.size();
+        }
+
+        protected void add(Node node) {
+            list.add(node);
+        }
     }
-  }
 }

@@ -17,7 +17,7 @@
  */
 
 package com.owlplug.plugin.ui;
- 
+
 import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.services.PluginService;
@@ -30,42 +30,42 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 
 public class RecoveredPluginView extends HBox {
-  
-  
-  /**
-   * Creates a RecoveredPluginView used in crash recovery reports.
-   * @param plugin - recovered plugin instance
-   * @param pluginService - PluginService
-   * @param applicationDefaults - ApplicationDefaults
-   */
-  public RecoveredPluginView(Plugin plugin, PluginService pluginService, ApplicationDefaults applicationDefaults) {
-    super();
-    
-    this.setAlignment(Pos.BASELINE_LEFT);
-    this.getStyleClass().add("recovered-plugin-view");
-        
-    Label label = new Label(plugin.getName());
-    ImageView imageView = new ImageView();
-    imageView.setImage(applicationDefaults.getPluginFormatIcon(plugin.getFormat()));
 
-    label.setGraphic(imageView);
-    this.getChildren().add(label);
-    
-    Pane transparentPane = new Pane();
-    HBox.setHgrow(transparentPane, Priority.ALWAYS);
-    this.getChildren().add(transparentPane);
-    
-    ToggleButton toggleButton = new ToggleButton();
-    toggleButton.setText("Native Discovery");
-    toggleButton.setSelected(plugin.getFootprint().isNativeDiscoveryEnabled());
-    
-    toggleButton.selectedProperty().addListener((observable, oldValue, newValue) -> {
-      plugin.getFootprint().setNativeDiscoveryEnabled(newValue);
-      pluginService.save(plugin.getFootprint());
-    });
-    
-    this.getChildren().add(toggleButton);
-    
-  }
+
+    /**
+     * Creates a RecoveredPluginView used in crash recovery reports.
+     *
+     * @param plugin              - recovered plugin instance
+     * @param pluginService       - PluginService
+     * @param applicationDefaults - ApplicationDefaults
+     */
+    public RecoveredPluginView(final Plugin plugin, final PluginService pluginService, final ApplicationDefaults applicationDefaults) {
+        super();
+
+        setAlignment(Pos.BASELINE_LEFT);
+        getStyleClass().add("recovered-plugin-view");
+
+        final var label = new Label(plugin.getName());
+        ImageView imageView = new ImageView();
+        imageView.setImage(applicationDefaults.getPluginFormatIcon(plugin.getFormat()));
+
+        label.setGraphic(imageView);
+        getChildren().add(label);
+
+        final var transparentPane = new Pane();
+        HBox.setHgrow(transparentPane, Priority.ALWAYS);
+        getChildren().add(transparentPane);
+
+        final var toggleButton = new ToggleButton();
+        toggleButton.setText("Native Discovery");
+        toggleButton.setSelected(plugin.getFootprint().isNativeDiscoveryEnabled());
+
+        toggleButton.selectedProperty().addListener((observable, oldValue, newValue) -> {
+            plugin.getFootprint().setNativeDiscoveryEnabled(newValue);
+            pluginService.save(plugin.getFootprint());
+        });
+
+        getChildren().add(toggleButton);
+    }
 
 }

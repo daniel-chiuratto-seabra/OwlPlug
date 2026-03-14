@@ -20,63 +20,64 @@ package com.owlplug.host.loaders.jni;
 
 import com.owlplug.host.NativePlugin;
 import com.owlplug.host.loaders.NativePluginLoader;
+
 import java.util.List;
 
 public class JNINativePluginLoader implements NativePluginLoader {
 
-  private static JNINativePluginLoader INSTANCE;
-  JNIPluginMapper nativePluginMapper;
+    private static JNINativePluginLoader INSTANCE;
+    JNIPluginMapper nativePluginMapper;
 
-  private JNINativePluginLoader() {
+    private JNINativePluginLoader() {
 
-  }
-
-  public static JNINativePluginLoader getInstance() {
-    if (INSTANCE == null) {
-      INSTANCE = new JNINativePluginLoader();
     }
-    return INSTANCE;
-  }
 
-  @Override
-  public void init() {
-    nativePluginMapper = JNIPluginMapper.getInstance();
-    nativePluginMapper.init();
-  }
+    public static JNINativePluginLoader getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new JNINativePluginLoader();
+        }
+        return INSTANCE;
+    }
 
-  @Override
-  public void open() {
+    @Override
+    public void init() {
+        nativePluginMapper = JNIPluginMapper.getInstance();
+        nativePluginMapper.init();
+    }
 
-  }
+    @Override
+    public void open() {
 
-  @Override
-  public List<NativePlugin> loadPlugin(String path) {
-    return nativePluginMapper.mapPlugin(path);
-  }
+    }
 
-  @Override
-  public void close() {
+    @Override
+    public List<NativePlugin> loadPlugin(String path) {
+        return nativePluginMapper.mapPlugin(path);
+    }
 
-  }
+    @Override
+    public void close() {
 
-  @Override
-  public boolean isAvailable() {
-    return nativePluginMapper.isNativeLibraryLoaded();
-  }
+    }
 
-  @Override
-  public String getName() {
-    return "OwlPlug JNI (legacy)";
-  }
+    @Override
+    public boolean isAvailable() {
+        return nativePluginMapper.isNativeLibraryLoaded();
+    }
 
-  @Override
-  public String getId() {
-    return "owlplug-jni-legacy";
-  }
+    @Override
+    public String getName() {
+        return "OwlPlug JNI (legacy)";
+    }
 
-  @Override
-  public String toString() {
-    return this.getName();
-  }
+    @Override
+    public String getId() {
+        return "owlplug-jni-legacy";
+    }
+
+    @Override
+    public String toString() {
+        return this.getName();
+    }
 
 }

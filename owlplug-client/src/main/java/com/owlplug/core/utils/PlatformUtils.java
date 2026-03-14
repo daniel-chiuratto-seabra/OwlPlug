@@ -15,52 +15,50 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.utils;
 
-import java.awt.Desktop;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PlatformUtils {
 
-  private static final Logger log = LoggerFactory.getLogger(PlatformUtils.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlatformUtils.class);
 
-  private PlatformUtils() {
-  }
-
-  public static void openFromDesktop(String path) {
-    if (path != null) {
-      openFromDesktop(new File(path));
-    } else {
-      throw new IllegalArgumentException("path can't be null");
+    public static void openFromDesktop(final String path) {
+        if (path != null) {
+            openFromDesktop(new File(path));
+        } else {
+            throw new IllegalArgumentException("path can't be null");
+        }
     }
-  }
 
-  public static void openFromDesktop(File file) {
-    try {
-      Desktop.getDesktop().open(file);
-    } catch (IOException e) {
-      log.error("Application for the given file fails to be launched", e);
+    public static void openFromDesktop(final File file) {
+        try {
+            Desktop.getDesktop().open(file);
+        } catch (IOException e) {
+            LOGGER.error("Application for the given file fails to be launched", e);
+        }
     }
-  }
 
-  public static void openDefaultBrowser(String url) {
+    public static void openDefaultBrowser(String url) {
 
-    try {
-      if (Desktop.isDesktopSupported()) {
-        log.debug("Opening address " + url + " in default browser");
-        Desktop.getDesktop().browse(new URI(url));
-      }
-    } catch (IOException e) {
-      log.error("Can't open default browser");
-    } catch (URISyntaxException e) {
-      log.error("Error in URI:" + url);
+        try {
+            if (Desktop.isDesktopSupported()) {
+                LOGGER.debug("Opening address {} in default browser", url);
+                Desktop.getDesktop().browse(new URI(url));
+            }
+        } catch (final IOException e) {
+            LOGGER.error("Can't open default browser", e);
+        } catch (URISyntaxException e) {
+            LOGGER.error("Error in URI: {}", url, e);
+        }
     }
-  }
 
 }

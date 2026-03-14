@@ -21,6 +21,4 @@ package com.owlplug.project.repositories;
 import com.owlplug.project.model.DawPlugin;
 import org.springframework.data.repository.CrudRepository;
 
-public interface DawPluginRepository extends CrudRepository<DawPlugin, Long> {
-
-}
+public interface DawPluginRepository extends CrudRepository<DawPlugin, Long> {}

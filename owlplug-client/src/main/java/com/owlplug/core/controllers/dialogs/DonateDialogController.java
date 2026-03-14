@@ -15,83 +15,75 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.controllers.dialogs;
 
 
 import com.owlplug.controls.DialogLayout;
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.components.LazyViewRegistry;
-import com.owlplug.core.utils.PlatformUtils;
+import com.owlplug.core.services.TelemetryService;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
+import java.net.URL;
+import java.util.ResourceBundle;
+
+import static com.owlplug.core.utils.PlatformUtils.openDefaultBrowser;
+
 @Controller
-public class DonateDialogController extends AbstractDialogController {
+public class DonateDialogController extends AbstractDialogController implements Initializable {
 
-  @Autowired
-  private LazyViewRegistry lazyViewRegistry;
-  @FXML
-  private Button donateButton;
-  @FXML
-  private Button roadmapButton;
-  @FXML
-  private Button featureRequestButton;
-  @FXML
-  private Button aboutButton;
-  @FXML
-  private Button cancelButton;
+    private final LazyViewRegistry lazyViewRegistry;
 
-  DonateDialogController() {
-    super(550, 480);
-    this.setOverlayClose(false);
-  }
+    @FXML private Button donateButton;
+    @FXML private Button roadmapButton;
+    @FXML private Button featureRequestButton;
+    @FXML private Button aboutButton;
+    @FXML private Button cancelButton;
 
-  /**
-   * FXML initialize.
-   */
-  public void initialize() {
+    DonateDialogController(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
+                           final TelemetryService telemetryService, final DialogManager dialogManager, LazyViewRegistry lazyViewRegistry) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager, 550, 480);
+        this.lazyViewRegistry = lazyViewRegistry;
+        setOverlayClose(false);
+    }
 
-    donateButton.setOnAction(e -> {
-      PlatformUtils.openDefaultBrowser(this.getApplicationDefaults().getEnvProperty("owlplug.donate.url"));
-      this.close();
-      this.getDialogManager()
-              .newSimpleInfoDialog("Thank  you !", "Thank you so much for contributing to OwlPlug development.\nYour donation will help me to release new versions, stay tuned !")
-              .show();
-    });
+    /**
+     * FXML initialize.
+     */
+    @Override
+    public void initialize(final URL location, final ResourceBundle resources) {
+        donateButton.setOnAction(e -> {
+            openDefaultBrowser(getApplicationDefaults().getDonateUrl());
+            close();
+            getDialogManager().newSimpleInfoDialog("Thank  you !", "Thank you so much for contributing to OwlPlug development.\nYour donation will help me to release new versions, stay tuned !")
+                    .show();
+        });
 
-    roadmapButton.setOnAction(e -> {
-      PlatformUtils.openDefaultBrowser(this.getApplicationDefaults().getEnvProperty("owlplug.roadmap.url"));
-    });
+        roadmapButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getRoadMapUrl()));
+        featureRequestButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getIssuesUrl()));
+        aboutButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getAboutUrl()));
+        cancelButton.setOnAction(e -> close());
+    }
 
-    featureRequestButton.setOnAction(e -> {
-      PlatformUtils.openDefaultBrowser(this.getApplicationDefaults().getEnvProperty("owlplug.github.issues.url"));
-    });
+    @Override
+    protected DialogLayout getLayout() {
+        DialogLayout dialogLayout = new DialogLayout();
 
-    aboutButton.setOnAction(e -> {
-      PlatformUtils.openDefaultBrowser(this.getApplicationDefaults().getEnvProperty("owlplug.about.url"));
-    });
+        Label title = new Label("Owlplug is free !");
+        title.getStyleClass().add("heading-3");
 
-    cancelButton.setOnAction(e -> {
-      this.close();
-    });
+        dialogLayout.setHeading(title);
 
-  }
+        dialogLayout.setBody(lazyViewRegistry.get(LazyViewRegistry.DONATE_VIEW));
 
-  @Override
-  protected DialogLayout getLayout() {
-    DialogLayout dialogLayout = new DialogLayout();
-
-    Label title = new Label("Owlplug is free !");
-    title.getStyleClass().add("heading-3");
-
-    dialogLayout.setHeading(title);
-
-    dialogLayout.setBody(lazyViewRegistry.get(LazyViewRegistry.DONATE_VIEW));
-
-    return dialogLayout;
-  }
+        return dialogLayout;
+    }
 
 }

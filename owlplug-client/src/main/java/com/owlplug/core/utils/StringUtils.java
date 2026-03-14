@@ -21,34 +21,36 @@ package com.owlplug.core.utils;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+
 public class StringUtils {
 
-  public static String truncate(String str, int size, String suffix) {
-    if (str == null || size < 0) {
-      return "";
+    public static String truncate(String str, int size, String suffix) {
+        if (str == null || size < 0) {
+            return EMPTY;
+        }
+        if (str.length() > size) {
+            return str.substring(0, Math.max(0, size - suffix.length())) + suffix;
+        }
+        return str;
     }
-    if (str.length() > size) {
-      return str.substring(0, Math.max(0, size - suffix.length())) + suffix;
-    }
-    return str;
-  }
 
-  public static String ellipsis(String input, int maxLength, int clearEndLength) {
-    if (input == null || input.length() <= maxLength
-            || clearEndLength >= maxLength) {
-      return input;
-    } else {
-      String truncatedString = input.substring(0, maxLength - clearEndLength);
-      return truncatedString + "..." + input.substring(input.length() - clearEndLength);
+    public static String ellipsis(String input, int maxLength, int clearEndLength) {
+        if (input == null || input.length() <= maxLength
+                || clearEndLength >= maxLength) {
+            return input;
+        } else {
+            String truncatedString = input.substring(0, maxLength - clearEndLength);
+            return truncatedString + "..." + input.substring(input.length() - clearEndLength);
+        }
     }
-  }
 
-  public static String getStackTraceAsString(Throwable throwable) {
-    if (throwable == null) {
-      return "null throwable";
+    public static String getStackTraceAsString(final Throwable throwable) {
+        if (throwable == null) {
+            return "null throwable";
+        }
+        final var stringWriter = new StringWriter();
+        throwable.printStackTrace(new PrintWriter(stringWriter));
+        return stringWriter.toString();
     }
-    StringWriter sw = new StringWriter();
-    throwable.printStackTrace(new PrintWriter(sw));
-    return sw.toString();
-  }
 }

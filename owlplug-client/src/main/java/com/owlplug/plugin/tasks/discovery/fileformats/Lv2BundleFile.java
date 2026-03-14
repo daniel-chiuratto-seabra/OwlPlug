@@ -21,22 +21,24 @@ package com.owlplug.plugin.tasks.discovery.fileformats;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.PluginComponent;
 import com.owlplug.plugin.model.PluginFormat;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class Lv2BundleFile extends PluginFile {
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Lv2BundleFile.class);
 
   /**
-   * Type checking function against current format for the given file.
+   * Type checking function against the current format for the given file.
    * @param file - file to test
    * @return true if the file matches the current file format
    */
@@ -78,7 +80,7 @@ public class Lv2BundleFile extends PluginFile {
       }
 
     } catch (FileNotFoundException e) {
-      log.error("Components can't be retrieved",e);
+      LOGGER.error("Components can't be retrieved",e);
     }
     return components;
   }

@@ -15,48 +15,45 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.tasks.discovery.fileformats;
 
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.PluginFormat;
+
 import java.io.File;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class OsxVstFile extends PluginFile {
-  
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  /**
-   * Type checking function against current format for the given file.
-   * @param file - file to test
-   * @return true if the file matches the current file format
-   */
-  public static boolean formatCheck(File file) {
-    return (file.getAbsolutePath().endsWith(".vst") || file.getAbsolutePath().endsWith(".vst.disabled"))
-        && file.isDirectory();
-    
-  }
-  
-  public OsxVstFile(File file) {
-    super(file);
-  }
+    /**
+     * Type checking function against the current format for the given file.
+     *
+     * @param file - file to test
+     * @return true if the file matches the current file format
+     */
+    public static boolean formatCheck(File file) {
+        return (file.getAbsolutePath().endsWith(".vst") || file.getAbsolutePath().endsWith(".vst.disabled"))
+                && file.isDirectory();
 
-  @Override
-  public Plugin toPlugin() {
-    
-    Plugin plugin = createPlugin();
-    plugin.setFormat(PluginFormat.VST2);
-    
-    File plist = new File(this.getPluginFile().getAbsolutePath() + "/Contents/Info.plist");
-    if (plist.exists()) {
-      OsxPlistFile plistFile = new OsxPlistFile(plist);
-      plistFile.bindProperties(plugin);
     }
 
-    return plugin;
-    
-  }
-  
+    public OsxVstFile(File file) {
+        super(file);
+    }
+
+    @Override
+    public Plugin toPlugin() {
+        final var plugin = createPlugin();
+        plugin.setFormat(PluginFormat.VST2);
+
+        final var plist = new File(this.getPluginFile().getAbsolutePath() + "/Contents/Info.plist");
+        if (plist.exists()) {
+            OsxPlistFile plistFile = new OsxPlistFile(plist);
+            plistFile.bindProperties(plugin);
+        }
+
+        return plugin;
+
+    }
+
 }

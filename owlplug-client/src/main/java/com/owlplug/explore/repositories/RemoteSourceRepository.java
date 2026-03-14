@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.repositories;
 
 import com.owlplug.explore.model.RemoteSource;
@@ -23,7 +23,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RemoteSourceRepository extends JpaRepository<RemoteSource, Long> {
 
-  RemoteSource findByName(String name);
+    RemoteSource findByUrl(String url);
 
-  RemoteSource findByUrl(String url);
 }

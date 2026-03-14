@@ -18,36 +18,17 @@
 
 package com.owlplug.explore.model.mappers.registry;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Map;
 
+@Getter
+@Setter
 public class RegistryMapper {
 
-  private String name;
-  private String url;
+    private String name;
+    private String url;
+    private Map<String, PackageMapper> packages;
 
-  private Map<String, PackageMapper> packages;
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public Map<String, PackageMapper> getPackages() {
-    return packages;
-  }
-
-  public void setPackages(Map<String, PackageMapper> packages) {
-    this.packages = packages;
-  }
 }

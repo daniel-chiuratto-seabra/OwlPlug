@@ -15,17 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.controllers;
 
 import com.google.common.collect.Iterables;
 import com.owlplug.controls.MasonryPane;
 import com.owlplug.controls.Popup;
 import com.owlplug.controls.Rippler;
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.components.ImageCache;
 import com.owlplug.core.components.LazyViewRegistry;
 import com.owlplug.core.controllers.BaseController;
 import com.owlplug.core.controllers.MainController;
+import com.owlplug.core.services.TelemetryService;
 import com.owlplug.explore.components.ExploreTaskFactory;
 import com.owlplug.explore.controllers.dialogs.InstallStepDialogController;
 import com.owlplug.explore.model.PackageBundle;
@@ -36,13 +40,9 @@ import com.owlplug.explore.services.ExploreService;
 import com.owlplug.explore.ui.ExploreChipView;
 import com.owlplug.explore.ui.PackageBlocViewBuilder;
 import com.owlplug.plugin.model.PluginFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -59,350 +59,339 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 @Controller
 public class ExploreController extends BaseController {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExploreController.class);
 
-  private static final int PARTITION_SIZE = 20;
+    private static final int PARTITION_SIZE = 20;
 
-  @Autowired
-  private ExploreService exploreService;
-  @Autowired
-  private ImageCache imageCache;
-  @Autowired
-  private LazyViewRegistry viewRegistry;
-  @Autowired
-  private PackageInfoController packageInfoController;
-  @Autowired
-  private MainController mainController;
-  @Autowired
-  private InstallStepDialogController installStepDialogController;
-  @Autowired
-  private ExploreTaskFactory exploreTaskFactory;
+    @FXML
+    private Button sourcesButton;
+    @FXML
+    private Button formatFilterButton;
+    @FXML
+    private Button platformFilterButton;
+    @FXML
+    private Button syncSourcesButton;
+    @FXML
+    private Text resultCounter;
+    @FXML
+    private MasonryPane masonryPane;
+    @FXML
+    private ScrollPane scrollPane;
+    @FXML
+    private HBox lazyLoadBar;
+    @FXML
+    private Hyperlink lazyLoadLink;
+    @FXML
+    private Pane exploreChipViewContainer;
 
-  @FXML
-  private Button sourcesButton;
-  @FXML
-  private Button formatFilterButton;
-  @FXML
-  private Button platformFilterButton;
-  @FXML
-  private Button syncSourcesButton;
-  @FXML
-  private Text resultCounter;
-  @FXML
-  private MasonryPane masonryPane;
-  @FXML
-  private ScrollPane scrollPane;
-  @FXML
-  private HBox lazyLoadBar;
-  @FXML
-  private Hyperlink lazyLoadLink;
-  @FXML
-  private Pane exploreChipViewContainer;
-  
-  private final HashMap<String, CheckBox> targetFilterCheckBoxes = new HashMap<>();
+    private final Map<String, CheckBox> targetFilterCheckBoxes = new HashMap<>();
+    private final Map<String, CheckBox> formatsFilterCheckBoxes = new HashMap<>();
 
-  private final HashMap<String, CheckBox> formatsFilterCheckBoxes = new HashMap<>();
-  
+    private ExploreChipView exploreChipView;
+    private PackageBlocViewBuilder packageBlocViewBuilder = null;
 
-  private ExploreChipView exploreChipView;
-  private PackageBlocViewBuilder packageBlocViewBuilder = null;
+    /**
+     * Loaded packages from remote sources are displayed by partitions (like pagination).
+     * When the user scrolls the entire partition, the next one is appended in the
+     * UI.
+     */
+    private Iterable<List<RemotePackage>> loadedPackagePartitions;
+    private Iterable<RemotePackage> loadedRemotePackages = new ArrayList<>();
 
-  /**
-   * Loaded packages from remote sources are displayed by partitions (like pagination).
-   * When the user scrolls the entire partition, the next one is appended in the
-   * UI.
-   */
-  private Iterable<List<RemotePackage>> loadedPackagePartitions;
-  private Iterable<RemotePackage> loadedRemotePackages = new ArrayList<>();
+    /**
+     * Counter-of loaded partitions on UI.
+     */
+    private int displayedPartitions = 0;
 
-  /**
-   * Counter of loaded partitions on UI.
-   */
-  private int displayedPartitions = 0;
+    private final ExploreService exploreService;
+    private final ImageCache imageCache;
+    private final LazyViewRegistry viewRegistry;
+    private final PackageInfoController packageInfoController;
+    private final MainController mainController;
+    private final ExploreTaskFactory exploreTaskFactory;
+    private final InstallStepDialogController installStepDialogController;
 
-  /**
-   * FXML initialize.
-   */
-  public void initialize() {
-
-    packageBlocViewBuilder = new PackageBlocViewBuilder(this.getApplicationDefaults(), imageCache, this);
-
-    sourcesButton.setOnAction(e -> {
-      mainController.setLeftDrawer(viewRegistry.get(LazyViewRegistry.SOURCE_MENU_VIEW));
-      mainController.getLeftDrawer().open();
-
-    });
-
-    for (PluginFormat format : PluginFormat.values()) {
-      CheckBox checkbox = new CheckBox(format.getText());
-      formatsFilterCheckBoxes.put(format.getText().toLowerCase(), checkbox);
-      checkbox.setSelected(false);
-      checkbox.setOnAction(e -> {
-        performPackageSearch();
-      });
+    public ExploreController(final ExploreService exploreService, final ImageCache imageCache, final LazyViewRegistry viewRegistry,
+                             @Lazy final PackageInfoController packageInfoController, @Lazy final MainController mainController,
+                             final ExploreTaskFactory exploreTaskFactory, final ApplicationDefaults applicationDefaults,
+                             final ApplicationPreferences applicationPreferences, final TelemetryService telemetryService,
+                             final DialogManager dialogManager, InstallStepDialogController installStepDialogController) {
+        super(applicationDefaults, applicationPreferences, telemetryService, dialogManager);
+        this.exploreService = exploreService;
+        this.imageCache = imageCache;
+        this.viewRegistry = viewRegistry;
+        this.packageInfoController = packageInfoController;
+        this.mainController = mainController;
+        this.exploreTaskFactory = exploreTaskFactory;
+        this.installStepDialogController = installStepDialogController;
     }
 
-    VBox formatFilterVbox = new VBox();
-    formatFilterVbox.setSpacing(5);
-    formatFilterVbox.setPadding(new Insets(5,10,5,10));
-    Label formatLabel = new Label("Plugin format");
-    formatLabel.getStyleClass().add("label-disabled");
-    formatFilterVbox.getChildren().add(formatLabel);
-    for (Entry<String, CheckBox> entry : formatsFilterCheckBoxes.entrySet()) {
-      formatFilterVbox.getChildren().add(entry.getValue());
-    }
-
-    formatFilterButton.setOnAction(e -> {
-      Popup popup = new Popup(formatFilterVbox);
-      popup.show(formatFilterButton, Popup.PopupVPosition.TOP, Popup.PopupHPosition.RIGHT);
-    });
-
-    
-    targetFilterCheckBoxes.put("win-x32", new CheckBox("Windows x32"));
-    targetFilterCheckBoxes.put("win-x64", new CheckBox("Windows x64"));
-    targetFilterCheckBoxes.put("win-arm64", new CheckBox("Windows arm64"));
-    targetFilterCheckBoxes.put("win-arm64ec", new CheckBox("Windows arm64 E.C."));
-    targetFilterCheckBoxes.put("mac-x64", new CheckBox("MacOS x64"));
-    targetFilterCheckBoxes.put("mac-arm64", new CheckBox("MacOS arm64"));
-    targetFilterCheckBoxes.put("linux-x32", new CheckBox("Linux x32 / amd32"));
-    targetFilterCheckBoxes.put("linux-x64", new CheckBox("Linux x64 / amd64"));
-    targetFilterCheckBoxes.put("linux-arm32", new CheckBox("Linux arm32"));
-    targetFilterCheckBoxes.put("linux-arm64", new CheckBox("Linux arm64"));
-    for (Entry<String, CheckBox> entry : targetFilterCheckBoxes.entrySet()) {
-      Set<String> preselected = this.getApplicationDefaults().getRuntimePlatform().getCompatiblePlatformsTags();
-      entry.getValue().setSelected(preselected.contains(entry.getKey()));
-      entry.getValue().setOnAction(e -> {
-        performPackageSearch();
-      });
-    }
-    
-    VBox platformFilterVbox = new VBox();
-    platformFilterVbox.setSpacing(5);
-    platformFilterVbox.setPadding(new Insets(5,10,5,10));
-    Label popupLabel = new Label("Target environment contains");
-    popupLabel.getStyleClass().add("label-disabled");
-    platformFilterVbox.getChildren().add(popupLabel);
-    for (Entry<String, CheckBox> entry : targetFilterCheckBoxes.entrySet()
-            .stream()
-            .sorted(Entry.<String, CheckBox>comparingByKey().reversed())
-            .toList()
-    ) {
-      platformFilterVbox.getChildren().add(entry.getValue());
-    }
-
-    platformFilterButton.setOnAction(e -> {
-      Popup popup = new Popup(platformFilterVbox);
-      popup.show(platformFilterButton, Popup.PopupVPosition.TOP, Popup.PopupHPosition.RIGHT);
-    });
-
-    syncSourcesButton.setOnAction(e -> {
-      this.getTelemetryService().event("/Explore/SyncSources");
-      exploreTaskFactory.createSourceSyncTask().schedule();
-    });
-
-    exploreChipView = new ExploreChipView(this.getApplicationDefaults(), this.exploreService.getDistinctCreators());
-    HBox.setHgrow(exploreChipView, Priority.ALWAYS);
-    exploreChipViewContainer.getChildren().add(exploreChipView);
-
-    exploreChipView.getChips().addListener((ListChangeListener<ExploreFilterCriteria>) change -> {
-      performPackageSearch();
-    });
-
-    scrollPane.vvalueProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue.doubleValue() == 1) {
-        displayNewPackagePartition();
-      }
-    });
-
-    lazyLoadLink.setOnAction(e -> {
-      displayNewPackagePartition();
-    });
-    lazyLoadBar.setVisible(false);
-
-    exploreTaskFactory.addSyncSourcesListener(() -> refreshView());
-    refreshView();
-
-    masonryPane.setHSpacing(5);
-    masonryPane.setVSpacing(5);
-
-    masonryPane.setCellHeight(130);
-    masonryPane.setCellWidth(130);
-
-  }
-  
-  private void performPackageSearch() {
-    final List<ExploreFilterCriteria> criteriaChipList = exploreChipView.getChips();
-    List<ExploreFilterCriteria> criteriaList = new ArrayList<>(criteriaChipList);
-
-    List<String> targets = new ArrayList<>();
-    for (Entry<String, CheckBox> entry : targetFilterCheckBoxes.entrySet()) {
-      if (entry.getValue().isSelected()) {
-        targets.add(entry.getKey());
-      }
-    }
-    if (targets.size() > 0) {
-      criteriaList.add(new ExploreFilterCriteria(targets, ExploreFilterCriteriaType.PLATFORM_LIST));
-    }
-
-    List<String> formats = new ArrayList<>();
-    for (Entry<String, CheckBox> entry : formatsFilterCheckBoxes.entrySet()) {
-      if (entry.getValue().isSelected()) {
-        formats.add(entry.getKey());
-      }
-    }
-    if (formats.size() > 0) {
-      criteriaList.add(new ExploreFilterCriteria(formats, ExploreFilterCriteriaType.FORMAT_LIST));
-    }
-
-    Task<Iterable<RemotePackage>> task = new Task<>() {
-      @Override
-      protected Iterable<RemotePackage> call() {
-        return exploreService.getRemotePackages(criteriaList);
-      }
-    };
-    task.setOnSucceeded(e -> {
-      displayPackages(task.getValue());
-    });
-    new Thread(task).start();
-
-  }
-
-  /**
-   * Refresh Store View.
-   */
-  public synchronized void refreshView() {
-    performPackageSearch();
-
-  }
-
-  /**
-   * Display remote source package list.
-   * 
-   * @param remotePackages - Remote package list
-   */
-  public synchronized void displayPackages(Iterable<RemotePackage> remotePackages) {
-
-    if (shouldRefreshPackages(remotePackages)) {
-      this.masonryPane.getChildren().clear();
-      this.masonryPane.requestLayout();
-
-      loadedRemotePackages = remotePackages;
-      loadedPackagePartitions = Iterables.partition(loadedRemotePackages, PARTITION_SIZE);
-      displayedPartitions = 0;
-      displayNewPackagePartition();
-    }
-  }
-
-  private void displayNewPackagePartition() {
-
-    if (Iterables.size(loadedPackagePartitions) > displayedPartitions) {
-      for (RemotePackage remotePackage : Iterables.get(loadedPackagePartitions, displayedPartitions)) {
-        Rippler rippler = new Rippler(packageBlocViewBuilder.build(remotePackage));
-        rippler.setOnMouseClicked(e -> {
-          if (e.getButton().equals(MouseButton.PRIMARY)) {
-            selectPackage(remotePackage);
-          }
+    /**
+     * FXML initialize.
+     */
+    public void initialize() {
+        packageBlocViewBuilder = new PackageBlocViewBuilder(getApplicationDefaults(), imageCache, this);
+        sourcesButton.setOnAction(e -> {
+            mainController.setLeftDrawer(viewRegistry.get(LazyViewRegistry.SOURCE_MENU_VIEW));
+            mainController.getLeftDrawer().open();
         });
-        masonryPane.getChildren().add(rippler);
-      }
-      displayedPartitions += 1;
 
-      if (Iterables.size(loadedPackagePartitions) == displayedPartitions) {
+        for (PluginFormat format : PluginFormat.values()) {
+            CheckBox checkbox = new CheckBox(format.getText());
+            formatsFilterCheckBoxes.put(format.getText().toLowerCase(), checkbox);
+            checkbox.setSelected(false);
+            checkbox.setOnAction(e -> performPackageSearch());
+        }
+
+        final var formatFilterVbox = new VBox();
+        formatFilterVbox.setSpacing(5);
+        formatFilterVbox.setPadding(new Insets(5, 10, 5, 10));
+        final var formatLabel = new Label("Plugin format");
+
+        formatLabel.getStyleClass().add("label-disabled");
+        formatFilterVbox.getChildren().add(formatLabel);
+        for (final var entry : formatsFilterCheckBoxes.entrySet()) {
+            formatFilterVbox.getChildren().add(entry.getValue());
+        }
+
+        formatFilterButton.setOnAction(e -> {
+            Popup popup = new Popup(formatFilterVbox);
+            popup.show(formatFilterButton, Popup.PopupVPosition.TOP, Popup.PopupHPosition.RIGHT);
+        });
+
+        targetFilterCheckBoxes.put("win-x32", new CheckBox("Windows x32"));
+        targetFilterCheckBoxes.put("win-x64", new CheckBox("Windows x64"));
+        targetFilterCheckBoxes.put("win-arm64", new CheckBox("Windows arm64"));
+        targetFilterCheckBoxes.put("win-arm64ec", new CheckBox("Windows arm64 E.C."));
+        targetFilterCheckBoxes.put("mac-x64", new CheckBox("MacOS x64"));
+        targetFilterCheckBoxes.put("mac-arm64", new CheckBox("MacOS arm64"));
+        targetFilterCheckBoxes.put("linux-x32", new CheckBox("Linux x32 / amd32"));
+        targetFilterCheckBoxes.put("linux-x64", new CheckBox("Linux x64 / amd64"));
+        targetFilterCheckBoxes.put("linux-arm32", new CheckBox("Linux arm32"));
+        targetFilterCheckBoxes.put("linux-arm64", new CheckBox("Linux arm64"));
+
+        for (final var entry : targetFilterCheckBoxes.entrySet()) {
+            final var preSelected = getApplicationDefaults().getRuntimePlatform().getCompatiblePlatformsTags();
+            entry.getValue().setSelected(preSelected.contains(entry.getKey()));
+            entry.getValue().setOnAction(e -> performPackageSearch());
+        }
+
+        final var platformFilterVbox = new VBox();
+        platformFilterVbox.setSpacing(5);
+        platformFilterVbox.setPadding(new Insets(5, 10, 5, 10));
+        final var popupLabel = new Label("Target environment contains");
+
+        popupLabel.getStyleClass().add("label-disabled");
+        platformFilterVbox.getChildren().add(popupLabel);
+        final var sortedCheckBoxList = targetFilterCheckBoxes.entrySet().stream()
+                .sorted(Entry.<String, CheckBox>comparingByKey().reversed()).toList();
+        for (Entry<String, CheckBox> entry : sortedCheckBoxList) {
+            platformFilterVbox.getChildren().add(entry.getValue());
+        }
+
+        platformFilterButton.setOnAction(e -> {
+            Popup popup = new Popup(platformFilterVbox);
+            popup.show(platformFilterButton, Popup.PopupVPosition.TOP, Popup.PopupHPosition.RIGHT);
+        });
+
+        syncSourcesButton.setOnAction(e -> {
+            getTelemetryService().event("/Explore/SyncSources");
+            exploreTaskFactory.createSourceSyncTask().schedule();
+        });
+
+        exploreChipView = new ExploreChipView(getApplicationDefaults(), exploreService.getDistinctCreators());
+        HBox.setHgrow(exploreChipView, Priority.ALWAYS);
+        exploreChipViewContainer.getChildren().add(exploreChipView);
+
+        exploreChipView.getChips().addListener((ListChangeListener<ExploreFilterCriteria>) change -> performPackageSearch());
+
+        scrollPane.vvalueProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue.doubleValue() == 1) {
+                displayNewPackagePartition();
+            }
+        });
+
+        lazyLoadLink.setOnAction(e -> displayNewPackagePartition());
         lazyLoadBar.setVisible(false);
-      } else {
-        lazyLoadBar.setVisible(true);
 
-      }
+        exploreTaskFactory.addSyncSourcesListener(this::refreshView);
+        refreshView();
 
-      Platform.runLater(() -> {
+        masonryPane.setHSpacing(5);
+        masonryPane.setVSpacing(5);
+
+        masonryPane.setCellHeight(130);
+        masonryPane.setCellWidth(130);
+    }
+
+    private void performPackageSearch() {
+        ObservableList<ExploreFilterCriteria> criteriaChipList = exploreChipView.getChips();
+        final var criteriaList = new ArrayList<>(criteriaChipList);
+
+        final var targets = new ArrayList<String>();
+        for (Entry<String, CheckBox> entry : targetFilterCheckBoxes.entrySet()) {
+            if (entry.getValue().isSelected()) {
+                targets.add(entry.getKey());
+            }
+        }
+        if (!targets.isEmpty()) {
+            criteriaList.add(new ExploreFilterCriteria(targets, ExploreFilterCriteriaType.PLATFORM_LIST));
+        }
+
+        final var formats = new ArrayList<>();
+        for (Entry<String, CheckBox> entry : formatsFilterCheckBoxes.entrySet()) {
+            if (entry.getValue().isSelected()) {
+                formats.add(entry.getKey());
+            }
+        }
+        if (!formats.isEmpty()) {
+            criteriaList.add(new ExploreFilterCriteria(formats, ExploreFilterCriteriaType.FORMAT_LIST));
+        }
+
+        final Task<Iterable<RemotePackage>> task = new Task<>() {
+            @Override
+            protected Iterable<RemotePackage> call() {
+                return exploreService.getRemotePackages(criteriaList);
+            }
+        };
+
+        task.setOnSucceeded(e -> displayPackages(task.getValue()));
+        new Thread(task).start();
+    }
+
+    /**
+     * Refresh Store View.
+     */
+    public synchronized void refreshView() {
+        performPackageSearch();
+    }
+
+    /**
+     * Display the remote source package list.
+     *
+     * @param remotePackages - Remote package list
+     */
+    public synchronized void displayPackages(final Iterable<RemotePackage> remotePackages) {
+        if (shouldRefreshPackages(remotePackages)) {
+            masonryPane.getChildren().clear();
+            masonryPane.requestLayout();
+
+            loadedRemotePackages = remotePackages;
+            loadedPackagePartitions = Iterables.partition(loadedRemotePackages, PARTITION_SIZE);
+            displayedPartitions = 0;
+            displayNewPackagePartition();
+        }
+    }
+
+    private void displayNewPackagePartition() {
+        if (Iterables.size(loadedPackagePartitions) > displayedPartitions) {
+            for (RemotePackage remotePackage : Iterables.get(loadedPackagePartitions, displayedPartitions)) {
+                final var rippler = new Rippler(packageBlocViewBuilder.build(remotePackage));
+                rippler.setOnMouseClicked(e -> {
+                    if (e.getButton().equals(MouseButton.PRIMARY)) {
+                        selectPackage(remotePackage);
+                    }
+                });
+                masonryPane.getChildren().add(rippler);
+            }
+            displayedPartitions += 1;
+
+            lazyLoadBar.setVisible(Iterables.size(loadedPackagePartitions) != displayedPartitions);
+
+            Platform.runLater(() -> {
+                masonryPane.requestLayout();
+                scrollPane.requestLayout();
+            });
+        }
+
+        resultCounter.setText(masonryPane.getChildren().size() + " / " + Iterables.size(loadedRemotePackages));
+
+    }
+
+    /**
+     * Returns true if the given package list is different from the previously
+     * loaded package list.
+     *
+     * @param newPackages - the new package list
+     */
+    private boolean shouldRefreshPackages(Iterable<RemotePackage> newPackages) {
+
+        if (Iterables.size(newPackages) != Iterables.size(loadedRemotePackages)) {
+            return true;
+        }
+
+        for (int i = 0; i < Iterables.size(newPackages); i++) {
+            if (!Iterables.get(newPackages, i).getId().equals(Iterables.get(loadedRemotePackages, i).getId())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Displays full package information.
+     *
+     * @param remotePackage - package
+     */
+    public void selectPackage(RemotePackage remotePackage) {
+        packageInfoController.setPackage(remotePackage);
+        packageInfoController.show();
+    }
+
+    public void addSearchChip(String chip) {
+        if (chip != null && !chip.trim().isEmpty()) {
+            exploreChipView.getChips().add(exploreChipView.getConverter().fromString(chip));
+        }
+    }
+
+    /**
+     * Trigger package installation. The best bundle will be selected based on the
+     * current user platform.
+     *
+     * @param remotePackage Package to install
+     */
+    public boolean installPackage(RemotePackage remotePackage) {
+        final var bundle = exploreService.findBestBundle(remotePackage);
+        return installBundle(bundle);
+    }
+
+    /**
+     * Trigger bundle installation.
+     *
+     * @param bundle Package to install
+     */
+    public boolean installBundle(PackageBundle bundle) {
+        if (bundle != null) {
+            getTelemetryService().event("/Explore/Install", p -> {
+                p.put("source", bundle.getRemotePackage().getRemoteSource().getName());
+                p.put("package", bundle.getRemotePackage().getName());
+                p.put("bundle", bundle.getName());
+            });
+            installStepDialogController.install(bundle);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Requests masonry and scroll pane layout.
+     */
+    public void requestLayout() {
         masonryPane.requestLayout();
         scrollPane.requestLayout();
-      });
     }
-    
-    resultCounter.setText(this.masonryPane.getChildren().size() + " / " + Iterables.size(this.loadedRemotePackages));
-
-  }
-
-  /**
-   * Returns true if the given package list is different from the previously
-   * loaded package list.
-   * 
-   * @param newPackages - the new package list
-   * @return
-   */
-  private boolean shouldRefreshPackages(Iterable<RemotePackage> newPackages) {
-
-    if (Iterables.size(newPackages) != Iterables.size(loadedRemotePackages)) {
-      return true;
-    }
-
-    for (int i = 0; i < Iterables.size(newPackages); i++) {
-      if (!Iterables.get(newPackages, i).getId().equals(Iterables.get(loadedRemotePackages, i).getId())) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Displays full package information.
-   * 
-   * @param remotePackage - package
-   */
-  public void selectPackage(RemotePackage remotePackage) {
-    packageInfoController.setPackage(remotePackage);
-    packageInfoController.show();
-  }
-
-  public void addSearchChip(String chip) {
-    if (chip != null && !chip.trim().isEmpty()) {
-      exploreChipView.getChips().add(exploreChipView.getConverter().fromString(chip));
-    }
-  }
-
-  /**
-   * Trigger package installation. The best bundle will be selected based on the
-   * current user platform.
-   * 
-   * @param remotePackage Package to install
-   */
-  public boolean installPackage(RemotePackage remotePackage) {
-    PackageBundle bundle = exploreService.findBestBundle(remotePackage);
-    return installBundle(bundle);
-  }
-
-  /**
-   * Trigger bundle installation.
-   *
-   * @param bundle Package to install
-   */
-  public boolean installBundle(PackageBundle bundle) {
-    if (bundle != null) {
-      this.getTelemetryService().event("/Explore/Install", p -> {
-        p.put("source", bundle.getRemotePackage().getRemoteSource().getName());
-        p.put("package", bundle.getRemotePackage().getName());
-        p.put("bundle", bundle.getName());
-      });
-      installStepDialogController.install(bundle);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Requests masonry and scroll pane layout.
-   */
-  public void requestLayout() {
-    masonryPane.requestLayout();
-    scrollPane.requestLayout();
-  }
 
 }

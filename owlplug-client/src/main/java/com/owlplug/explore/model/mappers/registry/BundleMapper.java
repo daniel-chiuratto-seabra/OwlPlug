@@ -15,102 +15,48 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.explore.model.mappers.registry;
+
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
 public class BundleMapper {
 
-  @Deprecated
-  private String name;
-  private List<String> targets;
-  private String downloadUrl;
+    @Deprecated
+    private String name;
 
-  private String downloadSha256;
+    @Deprecated
+    private String format;
 
-  @Deprecated
-  private String format;
+    @Getter @Setter private List<String> targets;
+    @Getter @Setter private String downloadUrl;
+    @Getter @Setter private String downloadSha256;
+    @Getter @Setter private List<String> formats;
+    @Getter @Setter private String version;
+    @Getter @Setter private String technicalUid;
+    @Getter @Setter private long fileSize;
 
-  private List<String> formats;
-  private String version;
-  private String technicalUid;
-  private long fileSize;
+    @Deprecated
+    public String getName() {
+        return name;
+    }
 
-  @Deprecated
-  public String getName() {
-    return name;
-  }
+    @Deprecated
+    public void setName(String name) {
+        this.name = name;
+    }
 
-  public List<String> getFormats() {
-    return formats;
-  }
+    @Deprecated
+    public String getFormat() {
+        return format;
+    }
 
-  public void setFormats(List<String> formats) {
-    this.formats = formats;
-  }
-
-  @Deprecated
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public List<String> getTargets() {
-    return targets;
-  }
-
-  public void setTargets(List<String> targets) {
-    this.targets = targets;
-  }
-
-  public String getDownloadUrl() {
-    return downloadUrl;
-  }
-
-  public void setDownloadUrl(String downloadUrl) {
-    this.downloadUrl = downloadUrl;
-  }
-
-  public String getDownloadSha256() {
-    return downloadSha256;
-  }
-
-  public void setDownloadSha256(String downloadSha256) {
-    this.downloadSha256 = downloadSha256;
-  }
-
-  public long getFileSize() {
-    return fileSize;
-  }
-
-  public void setFileSize(long fileSize) {
-    this.fileSize = fileSize;
-  }
-
-  @Deprecated
-  public String getFormat() {
-    return format;
-  }
-
-  public String getVersion() {
-    return version;
-  }
-
-  public void setVersion(String version) {
-    this.version = version;
-  }
-
-  public String getTechnicalUid() {
-    return technicalUid;
-  }
-
-  public void setTechnicalUid(String technicalUid) {
-    this.technicalUid = technicalUid;
-  }
-
-  @Deprecated
-  public void setFormat(String format) {
-    this.format = format;
-  }
+    @Deprecated
+    public void setFormat(String format) {
+        this.format = format;
+    }
 
 }

@@ -18,19 +18,19 @@
 
 package com.owlplug.project.model;
 
+import lombok.Getter;
+
+@Getter
 public enum DawApplication {
-  ABLETON("Ableton"),
-  REAPER("Reaper"),
-  STUDIO_ONE("Studio One");
-  private final String name;
 
-  DawApplication(String name) {
-    this.name = name;
-  }
+    ABLETON("Ableton"),
+    REAPER("Reaper"),
+    STUDIO_ONE("Studio One");
 
-  public String getName() {
-    return name;
-  }
+    private final String name;
 
+    DawApplication(final String name) {
+        this.name = name;
+    }
 
 }

@@ -29,113 +29,49 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
-import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+@Getter
+@Setter
 @Entity
+@ToString
 public class DawPlugin {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long id;
-  private String uid;
-  private String name;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-  @Deprecated
-  private String fileName;
-  private String path;
+    private String uid;
 
-  @Enumerated(EnumType.STRING)
-  private PluginFormat format;
+    private String name;
 
-  @ManyToOne
-  private DawProject project;
+    @Deprecated
+    private String fileName;
 
-  @OneToOne(mappedBy = "dawPlugin", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-  @OnDelete(action = OnDeleteAction.CASCADE)
-  private DawPluginLookup lookup;
+    private String path;
 
-  public Long getId() {
-    return id;
-  }
+    @Enumerated(EnumType.STRING)
+    private PluginFormat format;
 
-  public String getUid() {
-    return uid;
-  }
+    @ManyToOne
+    private DawProject project;
 
-  public void setUid(String uid) {
-    this.uid = uid;
-  }
+    @OneToOne(mappedBy = "dawPlugin", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private DawPluginLookup lookup;
 
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  @Deprecated
-  public String getFileName() {
-    return fileName;
-  }
-
-  @Deprecated
-  public void setFileName(String fileName) {
-    this.fileName = fileName;
-  }
-
-  public String getPath() {
-    return path;
-  }
-
-  public void setPath(String path) {
-    this.path = path;
-  }
-
-  public PluginFormat getFormat() {
-    return format;
-  }
-
-  public void setFormat(PluginFormat format) {
-    this.format = format;
-  }
-
-  public DawProject getProject() {
-    return project;
-  }
-
-  public void setProject(DawProject project) {
-    this.project = project;
-  }
-
-  public DawPluginLookup getLookup() {
-    return lookup;
-  }
-
-  public void setLookup(DawPluginLookup lookup) {
-    this.lookup = lookup;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    @Deprecated
+    public String getFileName() {
+        return fileName;
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    DawPlugin that = (DawPlugin) o;
-    return Objects.equals(id, that.id) && Objects.equals(name, that.name)
-            && Objects.equals(fileName, that.fileName) && Objects.equals(path, that.path)
-            && format == that.format && Objects.equals(project, that.project);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(id, name, fileName, path, format, project);
-  }
+    @Deprecated
+    public void setFileName(final String fileName) {
+        this.fileName = fileName;
+    }
+
 }
-
-

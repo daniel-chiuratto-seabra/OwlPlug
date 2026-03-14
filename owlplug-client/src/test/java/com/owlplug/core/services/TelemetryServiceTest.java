@@ -1,66 +1,81 @@
 package com.owlplug.core.services;
 
+import com.owlplug.core.components.ApplicationDefaults;
+import com.owlplug.core.components.ApplicationPreferences;
+import com.owlplug.core.components.RuntimePlatformResolver;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
+
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@ExtendWith(MockitoExtension.class)
 public class TelemetryServiceTest {
 
-  private final TelemetryService telemetryService = new TelemetryService();
+    @Mock
+    private Environment environment;
 
-  @Test
-  public void testShouldRedactUnixAbsolutePath() {
-    Map<String, String> params = new HashMap<>();
-    params.put("key", "Error reading /var/log/app/error.log file");
+    private final TelemetryService telemetryService = new TelemetryService(
+            new ApplicationDefaults(environment, new RuntimePlatformResolver()),
+            new ApplicationPreferences());
 
-    telemetryService.sanitize(params);
+    @Test
+    public void testShouldRedactUnixAbsolutePath() {
+        Map<String, String> params = new HashMap<>();
+        params.put("key", "Error reading /var/log/app/error.log file");
 
-    assertEquals("Error reading <path> file", params.get("key"));
-  }
+        telemetryService.sanitize(params);
 
-  @Test
-  public void testShouldRedactWindowsAbsolutePath() {
-    Map<String, String> params = new HashMap<>();
-    params.put("key", "Failed at C:\\\\Users\\\\john\\\\secret.txt");
+        assertEquals("Error reading <path> file", params.get("key"));
+    }
 
-    telemetryService.sanitize(params);
+    @Test
+    public void testShouldRedactWindowsAbsolutePath() {
+        Map<String, String> params = new HashMap<>();
+        params.put("key", "Failed at C:\\\\Users\\\\john\\\\secret.txt");
 
-    assertEquals("Failed at <path>", params.get("key"));
-  }
+        telemetryService.sanitize(params);
 
-  @Test
-  public void testShouldNotRedactClassNamesOrPackages() {
-    Map<String, String> params = new HashMap<>();
-    params.put("key", "at com.example.service.MyClass.method(MyClass.java:42)");
+        assertEquals("Failed at <path>", params.get("key"));
+    }
 
-    telemetryService.sanitize(params);
+    @Test
+    public void testShouldNotRedactClassNamesOrPackages() {
+        Map<String, String> params = new HashMap<>();
+        params.put("key", "at com.example.service.MyClass.method(MyClass.java:42)");
 
-    assertEquals(
-            "at com.example.service.MyClass.method(MyClass.java:42)",
-            params.get("key")
-    );
-  }
+        telemetryService.sanitize(params);
 
-  @Test
-  public void testShouldTruncateLongValuesAndAppendEllipsis() {
-    Map<String, String> params = new HashMap<>();
-    params.put("key", "abcdefghijklmnopqrstuvwxyz");
+        assertEquals(
+                "at com.example.service.MyClass.method(MyClass.java:42)",
+                params.get("key")
+        );
+    }
 
-    telemetryService.sanitize(params,20);
+    @Test
+    public void testShouldTruncateLongValuesAndAppendEllipsis() {
+        Map<String, String> params = new HashMap<>();
+        params.put("key", "abcdefghijklmnopqrstuvwxyz");
 
-    assertEquals("abcdefghijklmnopqrst…", params.get("key"));
-  }
+        telemetryService.sanitize(params, 20);
 
-  @Test
-  public void testShouldHandleMultipleEntriesIndependently() {
-    Map<String, String> params = new HashMap<>();
-    params.put("path", "/etc/passwd");
-    params.put("text", "hello world");
+        assertEquals("abcdefghijklmnopqrst…", params.get("key"));
+    }
 
-    telemetryService.sanitize(params);
+    @Test
+    public void testShouldHandleMultipleEntriesIndependently() {
+        Map<String, String> params = new HashMap<>();
+        params.put("path", "/etc/passwd");
+        params.put("text", "hello world");
 
-    assertEquals("<path>", params.get("path"));
-    assertEquals("hello world", params.get("text"));
-  }
+        telemetryService.sanitize(params);
+
+        assertEquals("<path>", params.get("path"));
+        assertEquals("hello world", params.get("text"));
+    }
 }

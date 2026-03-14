@@ -15,13 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.core.tasks;
 
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+@ToString
+@EqualsAndHashCode
+@NoArgsConstructor
 public class TaskResult {
-
-  public boolean isCompleted() {
-    return true;
-  }
-
+    public boolean isCompleted() {
+        return true;
+    }
 }

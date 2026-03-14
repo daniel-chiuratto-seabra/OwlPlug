@@ -27,36 +27,36 @@ import java.security.NoSuchAlgorithmException;
 
 public class CryptoUtils {
 
-  public static String getFileSha256Digest(File file) throws IOException {
+    public static String getFileSha256Digest(File file) throws IOException {
 
-    byte[] buffer = new byte[8192];
-    int count;
+        byte[] buffer = new byte[8192];
+        int count;
 
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-      while ((count = bis.read(buffer)) > 0) {
-        digest.update(buffer, 0, count);
-      }
-      bis.close();
-      return bytesToHex(digest.digest());
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+            while ((count = bis.read(buffer)) > 0) {
+                digest.update(buffer, 0, count);
+            }
+            bis.close();
+            return bytesToHex(digest.digest());
 
-    } catch (NoSuchAlgorithmException e) {
-      throw new IOException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e);
+        }
+
     }
 
-  }
-
-  private static String bytesToHex(byte[] hash) {
-    StringBuilder hexString = new StringBuilder(2 * hash.length);
-    for (byte b : hash) {
-      String hex = Integer.toHexString(0xff & b);
-      if (hex.length() == 1) {
-        hexString.append('0');
-      }
-      hexString.append(hex);
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
-    return hexString.toString();
-  }
 
 }

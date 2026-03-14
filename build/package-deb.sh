@@ -7,15 +7,15 @@ echo "Exporting LICENSE File"
 
 cp ../LICENSE ./input/LICENSE
 
-echo "Copying owlplug-client-${owlplug_version}.jar to owlplug.jar"
+echo "Copying owlplug-client-$owlplug_version.jar to owlplug.jar"
 
-cp ../owlplug-client/target/owlplug-client-${owlplug_version}.jar ./input/owlplug.jar
+cp ../owlplug-client/target/owlplug-client-$owlplug_version.jar ./input/owlplug.jar
 
 echo "Generating OwlPlug DEB Install package"
 
 jpackage --input ./input/ --name OwlPlug --main-class org.springframework.boot.loader.launch.JarLauncher \
 --main-jar owlplug.jar --license-file ./input/LICENSE --dest ./output \
---app-version ${owlplug_version} --icon ./resources/owlplug.png --vendor OwlPlug \
+--app-version $owlplug_version --icon ./resources/owlplug.png --vendor OwlPlug \
 --linux-package-name owlplug --linux-deb-maintainer contact@owlplug.com \
 --linux-menu-group "AudioVideo;Audio" --linux-shortcut
 

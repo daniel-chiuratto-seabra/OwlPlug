@@ -255,7 +255,7 @@ public class Rippler extends StackPane {
     if (visible) {
       showOverlay();
     } else {
-      forceOverlay = !visible ? false : forceOverlay;
+      forceOverlay = false;
       hideOverlay();
     }
   }
@@ -286,7 +286,7 @@ public class Rippler extends StackPane {
    * the createRipple method is called. Ripples grow and fade out
    * over 0.6 seconds
    */
-  final class RippleGenerator extends Group {
+  public final class RippleGenerator extends Group {
 
     private double generatorCenterX = 0;
     private double generatorCenterY = 0;
@@ -296,7 +296,7 @@ public class Rippler extends StackPane {
     private boolean resetClip = false;
     private Queue<Ripple> ripplesQueue = new LinkedList<Ripple>();
 
-    RippleGenerator() {
+    public RippleGenerator() {
       // improve in performance, by preventing
       // redrawing the parent when the ripple effect is triggered
       this.setManaged(false);
@@ -304,7 +304,7 @@ public class Rippler extends StackPane {
       this.setCacheHint(CacheHint.SPEED);
     }
 
-    void createRipple() {
+    public void createRipple() {
       if (enabled) {
         if (!generating.getAndSet(true)) {
           // create overlay once then change its color later
@@ -347,11 +347,11 @@ public class Rippler extends StackPane {
       }
     }
 
-    void cacheRippleClip(boolean cached) {
+    public void cacheRippleClip(boolean cached) {
       cacheRipplerClip = cached;
     }
 
-    void createOverlay() {
+    public void createOverlay() {
       if (overlayRect == null) {
         overlayRect = new OverLayRipple();
         overlayRect.setClip(getMask());
@@ -369,15 +369,15 @@ public class Rippler extends StackPane {
       }
     }
 
-    void setGeneratorCenterX(double generatorCenterX) {
+    public void setGeneratorCenterX(double generatorCenterX) {
       this.generatorCenterX = generatorCenterX;
     }
 
-    void setGeneratorCenterY(double generatorCenterY) {
+    public void setGeneratorCenterY(double generatorCenterY) {
       this.generatorCenterY = generatorCenterY;
     }
 
-    private final class OverLayRipple extends Rectangle {
+    public final class OverLayRipple extends Rectangle {
       // Overlay ripple animations
       Animation inAnimation = new Timeline(new KeyFrame(Duration.millis(300),
               new KeyValue(opacityProperty(), 1, Interpolator.EASE_IN)));
@@ -385,7 +385,7 @@ public class Rippler extends StackPane {
       Animation outAnimation = new Timeline(new KeyFrame(Duration.millis(300),
               new KeyValue(opacityProperty(), 0, Interpolator.EASE_OUT)));
 
-      OverLayRipple() {
+      public OverLayRipple() {
         super();
         setOverLayBounds(this);
         this.getStyleClass().add("rippler-overlay");
@@ -406,13 +406,13 @@ public class Rippler extends StackPane {
       }
     }
 
-    private final class Ripple extends Circle {
+    public final class Ripple extends Circle {
 
       KeyValue[] outKeyValues;
       Animation outAnimation = null;
-      Animation inAnimation = null;
+      Animation inAnimation;
 
-      private Ripple(double centerX, double centerY) {
+      public Ripple(double centerX, double centerY) {
         super(centerX,
                 centerY,
                 ripplerRadius.get().doubleValue() == Region.USE_COMPUTED_SIZE

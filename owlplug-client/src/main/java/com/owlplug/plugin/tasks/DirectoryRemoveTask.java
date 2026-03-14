@@ -15,38 +15,38 @@
  * You should have received a copy of the GNU General Public License
  * along with OwlPlug.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package com.owlplug.plugin.tasks;
 
 import com.owlplug.core.tasks.AbstractTask;
 import com.owlplug.core.tasks.TaskResult;
 import com.owlplug.plugin.model.PluginDirectory;
+
 import java.io.File;
-import org.apache.commons.io.FileUtils;
+
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 public class DirectoryRemoveTask extends AbstractTask {
 
-  protected PluginDirectory pluginDirectory;
+    protected PluginDirectory pluginDirectory;
 
-  public DirectoryRemoveTask(PluginDirectory pluginDirectory) {
+    public DirectoryRemoveTask(final PluginDirectory pluginDirectory) {
+        this.pluginDirectory = pluginDirectory;
+        setName("Remove directory");
+    }
 
-    this.pluginDirectory = pluginDirectory;
-    setName("Remove directory");
-  }
+    @Override
+    protected TaskResult start() throws Exception {
+        updateProgress(0, 1);
+        updateMessage("Deleting directory %s ...".formatted(pluginDirectory.getName()));
 
-  @Override
-  protected TaskResult start() throws Exception {
+        final var directoryFile = new File(pluginDirectory.getPath());
 
-    this.updateProgress(0, 1);
-    this.updateMessage("Deleting directory " + pluginDirectory.getName() + " ...");
+        deleteDirectory(directoryFile);
 
-    File directoryFile = new File(pluginDirectory.getPath());
+        updateProgress(1, 1);
+        updateMessage("Directory successfully deleted");
 
-    FileUtils.deleteDirectory(directoryFile);
-
-    this.updateProgress(1, 1);
-    this.updateMessage("Directory successfully deleted");
-
-    return completed();
-  }
+        return completed();
+    }
 }

@@ -1,3 +1,6 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
 name: Owlplug Main
 
 on: 
@@ -252,7 +255,7 @@ jobs:
     - name: Upload Installer Artifact
       uses: actions/upload-artifact@v6
       with:
-        name: owlplug-installer-dmg-${{ matrix.platform }}
+        name: owlplug-osx-installer-dmg-${{ matrix.platform }}
         path: build/output/OwlPlug-${{ env.version }}-${{ matrix.platform }}.dmg
   package-linux-deb:
     strategy:
@@ -284,7 +287,7 @@ jobs:
     - name: Upload Installer Artifact
       uses: actions/upload-artifact@v6
       with:
-        name: owlplug-installer-deb-${{ matrix.platform }}
+        name: owlplug-linux-installer-deb-${{ matrix.platform }}
         path: build/output/OwlPlug-${{ env.version }}-${{ matrix.platform }}.deb
   package-linux-appimage:
     strategy:
@@ -332,7 +335,7 @@ jobs:
   release:
     needs: [package-win-msi, package-osx-dmg, package-linux-deb, package-linux-appimage]
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/support/')
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - name: Retrieve installer artifacts
