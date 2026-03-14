@@ -60,15 +60,15 @@ public class DonateDialogController extends AbstractDialogController implements 
     @Override
     public void initialize(final URL location, final ResourceBundle resources) {
         donateButton.setOnAction(e -> {
-            openDefaultBrowser(getApplicationDefaults().getEnvProperty("owlplug.donate.url"));
+            openDefaultBrowser(getApplicationDefaults().getDonateUrl());
             close();
             getDialogManager().newSimpleInfoDialog("Thank  you !", "Thank you so much for contributing to OwlPlug development.\nYour donation will help me to release new versions, stay tuned !")
                     .show();
         });
 
-        roadmapButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getEnvProperty("owlplug.roadmap.url")));
-        featureRequestButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getEnvProperty("owlplug.github.issues.url")));
-        aboutButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getEnvProperty("owlplug.about.url")));
+        roadmapButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getRoadMapUrl()));
+        featureRequestButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getIssuesUrl()));
+        aboutButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getAboutUrl()));
         cancelButton.setOnAction(e -> close());
     }
 

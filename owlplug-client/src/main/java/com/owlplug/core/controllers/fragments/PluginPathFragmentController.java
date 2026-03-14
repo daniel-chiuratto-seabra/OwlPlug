@@ -21,6 +21,7 @@ package com.owlplug.core.controllers.fragments;
 import com.owlplug.core.components.ApplicationDefaults;
 import com.owlplug.core.components.ApplicationPreferences;
 import com.owlplug.core.ui.SVGPaths;
+import com.owlplug.core.utils.FileUtils;
 import com.owlplug.plugin.controllers.dialogs.ListDirectoryDialogController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -76,7 +77,8 @@ public class PluginPathFragmentController implements Initializable {
 
     public PluginPathFragmentController(final String name, final String enableOptionKey, final String directoryOptionKey,
                                         final String extraDirectoryOptionKey, final ApplicationPreferences prefs,
-                                        final ListDirectoryDialogController listDirectoryDialogController, ApplicationDefaults applicationDefaults) {
+                                        final ListDirectoryDialogController listDirectoryDialogController,
+                                        final ApplicationDefaults applicationDefaults) {
         this.name = name;
         this.enableOptionKey = enableOptionKey;
         this.directoryOptionKey = directoryOptionKey;
@@ -124,7 +126,7 @@ public class PluginPathFragmentController implements Initializable {
         });
 
         directoryTextField.textProperty().addListener((observable, oldValue, newValue) -> {
-            prefs.put(directoryOptionKey, newValue);
+            prefs.put(directoryOptionKey, FileUtils.convertPath(newValue));
             refresh();
         });
 
@@ -220,44 +222,44 @@ public class PluginPathFragmentController implements Initializable {
 
         DirectoryChecks checks = checkDirectory(directoryTextField.getText());
 
-        directoryExistLabel.getStyleClass().removeAll("label-success", "label-danger");
+        directoryExistLabel.getStyleClass().removeAll("label-disabled", "label-danger");
         Region imv = (Region) directoryExistLabel.getGraphic();
-        if (checks.getExists().getStatus()) {
-            directoryExistLabel.getStyleClass().add("label-success");
+        if (checks.getExists().status()) {
+            directoryExistLabel.getStyleClass().add("label-disabled");
             imv.setShape(checkPath);
-            imv.setStyle("-fx-background-color: success-color;");
+            imv.setStyle("-fx-background-color: disabled-color;");
         } else {
             directoryExistLabel.getStyleClass().add("label-danger");
             imv.setShape(crossPath);
             imv.setStyle("-fx-background-color: danger-color;");
         }
-        directoryExistLabel.setTooltip(new Tooltip(checks.getExists().getMessage()));
+        directoryExistLabel.setTooltip(new Tooltip(checks.getExists().message()));
 
         imv = (Region) canReadLabel.getGraphic();
-        canReadLabel.getStyleClass().removeAll("label-success", "label-danger");
-        if (checks.getCanRead().getStatus()) {
-            canReadLabel.getStyleClass().add("label-success");
+        canReadLabel.getStyleClass().removeAll("label-disabled", "label-danger");
+        if (checks.getCanRead().status()) {
+            canReadLabel.getStyleClass().add("label-disabled");
             imv.setShape(checkPath);
-            imv.setStyle("-fx-background-color: success-color;");
+            imv.setStyle("-fx-background-color: disabled-color;");
         } else {
             canReadLabel.getStyleClass().add("label-danger");
             imv.setShape(crossPath);
             imv.setStyle("-fx-background-color: danger-color;");
         }
-        canReadLabel.setTooltip(new Tooltip(checks.getCanRead().getMessage()));
+        canReadLabel.setTooltip(new Tooltip(checks.getCanRead().message()));
 
         imv = (Region) canWriteLabel.getGraphic();
-        canWriteLabel.getStyleClass().removeAll("label-success", "label-danger");
-        if (checks.getCanWrite().getStatus()) {
-            canWriteLabel.getStyleClass().add("label-success");
+        canWriteLabel.getStyleClass().removeAll("label-disabled", "label-danger");
+        if (checks.getCanWrite().status()) {
+            canWriteLabel.getStyleClass().add("label-disabled");
             imv.setShape(checkPath);
-            imv.setStyle("-fx-background-color: success-color;");
+            imv.setStyle("-fx-background-color: disabled-color;");
         } else {
             canWriteLabel.getStyleClass().add("label-danger");
             imv.setShape(crossPath);
             imv.setStyle("-fx-background-color: danger-color;");
         }
-        canWriteLabel.setTooltip(new Tooltip(checks.getCanWrite().getMessage()));
+        canWriteLabel.setTooltip(new Tooltip(checks.getCanWrite().message()));
 
     }
 
@@ -273,20 +275,5 @@ public class PluginPathFragmentController implements Initializable {
         private DirectoryCheck canWrite;
     }
 
-    public static class DirectoryCheck {
-        private final boolean status;
-
-        @Getter
-        private final String message;
-
-        public DirectoryCheck(boolean status, String message) {
-            this.status = status;
-            this.message = message;
-        }
-
-        public boolean getStatus() {
-            return status;
-        }
-
-    }
+    public record DirectoryCheck(boolean status, String message) {}
 }

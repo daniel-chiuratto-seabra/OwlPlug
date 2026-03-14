@@ -67,7 +67,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 @Controller
 public class ExploreController extends BaseController {
@@ -76,16 +75,26 @@ public class ExploreController extends BaseController {
 
     private static final int PARTITION_SIZE = 20;
 
-    @FXML private Button sourcesButton;
-    @FXML private Button formatFilterButton;
-    @FXML private Button platformFilterButton;
-    @FXML private Button syncSourcesButton;
-    @FXML private Text resultCounter;
-    @FXML private MasonryPane masonryPane;
-    @FXML private ScrollPane scrollPane;
-    @FXML private HBox lazyLoadBar;
-    @FXML private Hyperlink lazyLoadLink;
-    @FXML private Pane exploreChipViewContainer;
+    @FXML
+    private Button sourcesButton;
+    @FXML
+    private Button formatFilterButton;
+    @FXML
+    private Button platformFilterButton;
+    @FXML
+    private Button syncSourcesButton;
+    @FXML
+    private Text resultCounter;
+    @FXML
+    private MasonryPane masonryPane;
+    @FXML
+    private ScrollPane scrollPane;
+    @FXML
+    private HBox lazyLoadBar;
+    @FXML
+    private Hyperlink lazyLoadLink;
+    @FXML
+    private Pane exploreChipViewContainer;
 
     private final Map<String, CheckBox> targetFilterCheckBoxes = new HashMap<>();
     private final Map<String, CheckBox> formatsFilterCheckBoxes = new HashMap<>();
@@ -133,7 +142,7 @@ public class ExploreController extends BaseController {
      * FXML initialize.
      */
     public void initialize() {
-        packageBlocViewBuilder = new PackageBlocViewBuilder(this.getApplicationDefaults(), imageCache, this);
+        packageBlocViewBuilder = new PackageBlocViewBuilder(getApplicationDefaults(), imageCache, this);
         sourcesButton.setOnAction(e -> {
             mainController.setLeftDrawer(viewRegistry.get(LazyViewRegistry.SOURCE_MENU_VIEW));
             mainController.getLeftDrawer().open();
@@ -146,14 +155,26 @@ public class ExploreController extends BaseController {
             checkbox.setOnAction(e -> performPackageSearch());
         }
 
-        VBox formatFilterVbox = new VBox();
+        final var formatFilterVbox = new VBox();
         formatFilterVbox.setSpacing(5);
         formatFilterVbox.setPadding(new Insets(5, 10, 5, 10));
-        Label formatLabel = new Label("Plugin format");
-        setButtonSpecifics(formatFilterVbox, formatLabel, formatsFilterCheckBoxes, formatFilterButton);
+        final var formatLabel = new Label("Plugin format");
+
+        formatLabel.getStyleClass().add("label-disabled");
+        formatFilterVbox.getChildren().add(formatLabel);
+        for (final var entry : formatsFilterCheckBoxes.entrySet()) {
+            formatFilterVbox.getChildren().add(entry.getValue());
+        }
+
+        formatFilterButton.setOnAction(e -> {
+            Popup popup = new Popup(formatFilterVbox);
+            popup.show(formatFilterButton, Popup.PopupVPosition.TOP, Popup.PopupHPosition.RIGHT);
+        });
 
         targetFilterCheckBoxes.put("win-x32", new CheckBox("Windows x32"));
         targetFilterCheckBoxes.put("win-x64", new CheckBox("Windows x64"));
+        targetFilterCheckBoxes.put("win-arm64", new CheckBox("Windows arm64"));
+        targetFilterCheckBoxes.put("win-arm64ec", new CheckBox("Windows arm64 E.C."));
         targetFilterCheckBoxes.put("mac-x64", new CheckBox("MacOS x64"));
         targetFilterCheckBoxes.put("mac-arm64", new CheckBox("MacOS arm64"));
         targetFilterCheckBoxes.put("linux-x32", new CheckBox("Linux x32 / amd32"));
@@ -161,24 +182,36 @@ public class ExploreController extends BaseController {
         targetFilterCheckBoxes.put("linux-arm32", new CheckBox("Linux arm32"));
         targetFilterCheckBoxes.put("linux-arm64", new CheckBox("Linux arm64"));
 
-        for (Entry<String, CheckBox> entry : targetFilterCheckBoxes.entrySet()) {
-            Set<String> preselected = this.getApplicationDefaults().getRuntimePlatform().getCompatiblePlatformsTags();
-            entry.getValue().setSelected(preselected.contains(entry.getKey()));
+        for (final var entry : targetFilterCheckBoxes.entrySet()) {
+            final var preSelected = getApplicationDefaults().getRuntimePlatform().getCompatiblePlatformsTags();
+            entry.getValue().setSelected(preSelected.contains(entry.getKey()));
             entry.getValue().setOnAction(e -> performPackageSearch());
         }
 
-        VBox platformFilterVbox = new VBox();
+        final var platformFilterVbox = new VBox();
         platformFilterVbox.setSpacing(5);
         platformFilterVbox.setPadding(new Insets(5, 10, 5, 10));
-        Label popupLabel = new Label("Target environment contains");
-        setButtonSpecifics(platformFilterVbox, popupLabel, targetFilterCheckBoxes, platformFilterButton);
+        final var popupLabel = new Label("Target environment contains");
+
+        popupLabel.getStyleClass().add("label-disabled");
+        platformFilterVbox.getChildren().add(popupLabel);
+        final var sortedCheckBoxList = targetFilterCheckBoxes.entrySet().stream()
+                .sorted(Entry.<String, CheckBox>comparingByKey().reversed()).toList();
+        for (Entry<String, CheckBox> entry : sortedCheckBoxList) {
+            platformFilterVbox.getChildren().add(entry.getValue());
+        }
+
+        platformFilterButton.setOnAction(e -> {
+            Popup popup = new Popup(platformFilterVbox);
+            popup.show(platformFilterButton, Popup.PopupVPosition.TOP, Popup.PopupHPosition.RIGHT);
+        });
 
         syncSourcesButton.setOnAction(e -> {
             getTelemetryService().event("/Explore/SyncSources");
             exploreTaskFactory.createSourceSyncTask().schedule();
         });
 
-        exploreChipView = new ExploreChipView(this.getApplicationDefaults(), this.exploreService.getDistinctCreators());
+        exploreChipView = new ExploreChipView(getApplicationDefaults(), exploreService.getDistinctCreators());
         HBox.setHgrow(exploreChipView, Priority.ALWAYS);
         exploreChipViewContainer.getChildren().add(exploreChipView);
 
@@ -201,20 +234,6 @@ public class ExploreController extends BaseController {
 
         masonryPane.setCellHeight(130);
         masonryPane.setCellWidth(130);
-    }
-
-    private void setButtonSpecifics(final VBox formatFilterVbox, final Label formatLabel, final Map<String, CheckBox> formatsFilterCheckBoxes,
-                                    final Button formatFilterButton) {
-        formatLabel.getStyleClass().add("label-disabled");
-        formatFilterVbox.getChildren().add(formatLabel);
-        for (Entry<String, CheckBox> entry : formatsFilterCheckBoxes.entrySet()) {
-            formatFilterVbox.getChildren().add(entry.getValue());
-        }
-
-        formatFilterButton.setOnAction(e -> {
-            Popup popup = new Popup(formatFilterVbox);
-            popup.show(formatFilterButton, Popup.PopupVPosition.TOP, Popup.PopupHPosition.RIGHT);
-        });
     }
 
     private void performPackageSearch() {
@@ -266,8 +285,8 @@ public class ExploreController extends BaseController {
      */
     public synchronized void displayPackages(final Iterable<RemotePackage> remotePackages) {
         if (shouldRefreshPackages(remotePackages)) {
-            this.masonryPane.getChildren().clear();
-            this.masonryPane.requestLayout();
+            masonryPane.getChildren().clear();
+            masonryPane.requestLayout();
 
             loadedRemotePackages = remotePackages;
             loadedPackagePartitions = Iterables.partition(loadedRemotePackages, PARTITION_SIZE);
@@ -297,7 +316,7 @@ public class ExploreController extends BaseController {
             });
         }
 
-        resultCounter.setText(this.masonryPane.getChildren().size() + " / " + Iterables.size(this.loadedRemotePackages));
+        resultCounter.setText(masonryPane.getChildren().size() + " / " + Iterables.size(loadedRemotePackages));
 
     }
 
@@ -356,7 +375,7 @@ public class ExploreController extends BaseController {
      */
     public boolean installBundle(PackageBundle bundle) {
         if (bundle != null) {
-            this.getTelemetryService().event("/Explore/Install", p -> {
+            getTelemetryService().event("/Explore/Install", p -> {
                 p.put("source", bundle.getRemotePackage().getRemoteSource().getName());
                 p.put("package", bundle.getRemotePackage().getName());
                 p.put("bundle", bundle.getName());

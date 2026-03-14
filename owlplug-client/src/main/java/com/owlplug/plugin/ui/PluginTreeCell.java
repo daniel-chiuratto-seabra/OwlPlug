@@ -19,7 +19,7 @@
 package com.owlplug.plugin.ui;
 
 import com.owlplug.core.components.ApplicationDefaults;
-import com.owlplug.plugin.model.Directory;
+import com.owlplug.plugin.model.IDirectory;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.PluginComponent;
 import com.owlplug.plugin.model.PluginDirectory;
@@ -55,7 +55,7 @@ public class PluginTreeCell extends TreeCell<Object> {
             switch (item) {
                 case Plugin plugin -> renderPlugin(plugin);
                 case PluginComponent pluginComponent -> renderComponent(pluginComponent);
-                case Directory directory -> renderDirectory(directory);
+                case IDirectory IDirectory -> renderDirectory(IDirectory);
                 default -> {
                     setText(item.toString());
                     setGraphic(getTreeItem().getGraphic());
@@ -101,7 +101,7 @@ public class PluginTreeCell extends TreeCell<Object> {
     }
 
 
-    private void renderDirectory(Directory dir) {
+    private void renderDirectory(IDirectory dir) {
         final var textFlow = new TextFlow();
         Text directoryName;
 
@@ -132,10 +132,10 @@ public class PluginTreeCell extends TreeCell<Object> {
         setText(null);
     }
 
-    private Node getIconNode(final Directory directory) {
-        if (directory instanceof Symlink) {
+    private Node getIconNode(final IDirectory IDirectory) {
+        if (IDirectory instanceof Symlink) {
             return new ImageView(applicationDefaults.symlinkImage);
-        } else if (directory instanceof PluginDirectory pluginDirectory) {
+        } else if (IDirectory instanceof PluginDirectory pluginDirectory) {
             if (pluginDirectory.isRootDirectory()) {
                 return new ImageView(applicationDefaults.scanDirectoryImage);
             } else {

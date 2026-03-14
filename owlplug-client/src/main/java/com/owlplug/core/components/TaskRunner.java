@@ -24,6 +24,7 @@ import com.owlplug.core.tasks.TaskResult;
 import javafx.concurrent.WorkerStateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
@@ -103,9 +104,10 @@ public class TaskRunner {
                 LOGGER.error("Error while running task", ex);
                 runLater(() -> {
                     if (ex != null) {
-                        taskBarController.setErrorLog(currentTask, ex.getMessage(), getStackTraceAsString(ex));
+                        taskBarController.setErrorLog(currentTask, ex.getMessage(), getStackTraceAsString(ex),
+                                NestedExceptionUtils.getMostSpecificCause(ex).getMessage());
                     } else {
-                        taskBarController.setErrorLog(currentTask, "Task Failed", "No error information available.");
+                        taskBarController.setErrorLog(currentTask, "Task Failed", "No error information available.", "No summary available");
                     }
                     removeCurrentTask();
                     scheduleNext();

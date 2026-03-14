@@ -24,8 +24,7 @@ import com.owlplug.host.io.ClassPathFileExtractor;
 import com.owlplug.host.io.ClassPathVersionUtils;
 import com.owlplug.host.io.CommandResult;
 import com.owlplug.host.io.CommandRunner;
-import com.owlplug.host.model.OS;
-import com.owlplug.host.utils.FileSystemUtils;
+import com.owlplug.host.utils.OSUtils;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
@@ -58,7 +57,7 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
     private static final String DEFAULT_SCANNER_NAME = "owlplug-scanner";
     private static final String DEFAULT_SCANNER_VERSION = ClassPathVersionUtils.getVersionSafe(DEFAULT_SCANNER_NAME);
     private static final String DEFAULT_SCANNER_EXT = getPlatformExecutableExtension();
-    private static final String DEFAULT_SCANNER_PLATFORM_TAG = getPlatformTagName();
+    private static final String DEFAULT_SCANNER_PLATFORM_TAG = OSUtils.getPlatformTagName();
     private static final String DEFAULT_SCANNER_ID = "%s-%s-%s%s".formatted(DEFAULT_SCANNER_NAME, DEFAULT_SCANNER_VERSION,
             DEFAULT_SCANNER_PLATFORM_TAG, DEFAULT_SCANNER_EXT);
 
@@ -95,7 +94,7 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
             available = true;
 
             // Apply executable permissions on POSIX filesystem
-            if (FileSystemUtils.isPosix()) {
+            if (OSUtils.isPosixFileSystem()) {
                 try {
                     Set<PosixFilePermission> executablePermission = PosixFilePermissions.fromString("rwxr-xr--");
                     Files.setPosixFilePermissions(scannerFile.toPath(), executablePermission);
@@ -234,27 +233,12 @@ public class EmbeddedScannerPluginLoader implements NativePluginLoader {
 
     /**
      * Returns platform default executable extension.
-     * - Windows host: .exe
-     * - Mac host: empty string
+     * No extensions are defined for scanners.
      * Returns an empty string for any other hosts
      *
      * @return host default library extension
      */
     private static String getPlatformExecutableExtension() {
-        if (OS.WINDOWS.isCurrentOs()) {
-            return ".exe";
-        }
-        return "";
-    }
-
-    private static String getPlatformTagName() {
-        if (OS.WINDOWS.isCurrentOs()) {
-            return "win";
-        } else if (OS.MAC.isCurrentOs()) {
-            return "osx";
-        } else if (OS.LINUX.isCurrentOs()) {
-            return "linux";
-        }
         return "";
     }
 

@@ -25,6 +25,7 @@ import com.owlplug.project.model.DawProject;
 import com.owlplug.project.repositories.DawProjectRepository;
 import com.owlplug.project.tasks.discovery.ableton.AbletonProjectExplorer;
 import com.owlplug.project.tasks.discovery.reaper.ReaperProjectExplorer;
+import com.owlplug.project.tasks.discovery.studioone.StudioOneProjectExplorer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,19 +71,33 @@ public class ProjectSyncTask extends AbstractTask {
 
         setMaxProgress(filteredFiles.size());
 
+        // Create explorer instances once, outside the loop (they are stateless)
+        final var abletonExplorer = new AbletonProjectExplorer();
+        final var reaperExplorer = new ReaperProjectExplorer();
+        final var studioOneExplorer = new StudioOneProjectExplorer();
+
         for (final var file : filteredFiles) {
             commitProgress(1);
-            AbletonProjectExplorer abletonExplorer = new AbletonProjectExplorer();
-            ReaperProjectExplorer reaperExplorer = new ReaperProjectExplorer();
 
+            // Explores and persists a project from a matching file explorer
             if (abletonExplorer.canExploreFile(file)) {
                 updateMessage("Analyzing Ableton file: %s".formatted(file.getAbsolutePath()));
                 final var project = abletonExplorer.explore(file);
-                projectRepository.save(project);
+                if (project != null) {
+                    projectRepository.save(project);
+                }
             } else if (reaperExplorer.canExploreFile(file)) {
                 updateMessage("Analyzing Reaper file: %s".formatted(file.getAbsolutePath()));
-                DawProject project = reaperExplorer.explore(file);
-                projectRepository.save(project);
+                final var project = reaperExplorer.explore(file);
+                if (project != null) {
+                    projectRepository.save(project);
+                }
+            } else if (studioOneExplorer.canExploreFile(file)) {
+                updateMessage("Analyzing Studio One file: %s".formatted(file.getAbsolutePath()));
+                final var project = studioOneExplorer.explore(file);
+                if (project != null) {
+                    projectRepository.save(project);
+                }
             }
         }
 

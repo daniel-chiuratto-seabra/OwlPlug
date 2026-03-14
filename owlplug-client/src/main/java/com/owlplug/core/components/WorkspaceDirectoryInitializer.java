@@ -73,7 +73,7 @@ public class WorkspaceDirectoryInitializer {
             try {
                 String workspaceVersion = FileUtils.readFileToString(versionFile, UTF_8);
                 Semver workspaceSemver = new Semver(workspaceVersion);
-                Semver workspaceMinSemver = new Semver(applicationDefaults.getEnvProperty("owlplug.workspace.min-version"));
+                Semver workspaceMinSemver = new Semver(applicationDefaults.getWorkspaceMinVersion());
 
                 if (workspaceSemver.isLowerThan(workspaceMinSemver)) {
                     LOGGER.info("Cleaning outdated workspace data from version {} to match constraint {}", workspaceVersion, workspaceMinSemver);

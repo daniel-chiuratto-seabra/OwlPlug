@@ -379,9 +379,9 @@ public class ApplicationDefaultsTest {
      * The Hub is used for checking updates and fetching application metadata.
      */
     @Test
-    void testGetOwlPlugHubUrl() {
+    void testGetLatestUrl() {
         when(environment.getProperty("owlplug.hub.url")).thenReturn("https://hub.owlplug.com");
-        assertEquals("https://hub.owlplug.com", applicationDefaults.getOwlPlugHubUrl());
+        assertEquals("https://hub.owlplug.com", applicationDefaults.getLatestUrl());
         verify(environment).getProperty("owlplug.hub.url");
     }
 
@@ -390,9 +390,9 @@ public class ApplicationDefaultsTest {
      * This URL is used by the update service to download new application versions.
      */
     @Test
-    void testGetUpdateDownloadUrl() {
+    void testGetDownloadUrl() {
         when(environment.getProperty("owlplug.hub.updateDownloadUrl")).thenReturn("https://updates.owlplug.com");
-        assertEquals("https://updates.owlplug.com", applicationDefaults.getUpdateDownloadUrl());
+        assertEquals("https://updates.owlplug.com", applicationDefaults.getDownloadUrl());
         verify(environment).getProperty("owlplug.hub.updateDownloadUrl");
     }
 

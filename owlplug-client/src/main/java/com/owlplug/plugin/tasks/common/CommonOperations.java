@@ -1,12 +1,16 @@
 package com.owlplug.plugin.tasks.common;
 
+import com.owlplug.plugin.model.PluginFormat;
 import com.owlplug.plugin.model.Symlink;
 import com.owlplug.plugin.tasks.discovery.PluginFileCollector;
 import com.owlplug.plugin.tasks.discovery.PluginScanTaskParameters;
 import com.owlplug.plugin.tasks.discovery.SymlinkCollector;
 import com.owlplug.plugin.tasks.discovery.fileformats.PluginFile;
 
+import java.io.File;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static com.owlplug.plugin.model.PluginFormat.AU;
@@ -21,63 +25,98 @@ public class CommonOperations {
                                       final Collection<Symlink> collectedSymlinks, final SymlinkCollector symlinkCollector) {
         if (pluginScanTaskParameters.getDirectoryScope() != null) {
             // Plugins are retrieved from a scoped directory
+            final var scope = pluginScanTaskParameters.getDirectoryScope();
             if (pluginScanTaskParameters.isFindLv2()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(pluginScanTaskParameters.getDirectoryScope(), LV2));
+                collectedPluginFiles.addAll(pluginCollector.collect(scope, LV2));
             }
             if (pluginScanTaskParameters.isFindVst3()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(pluginScanTaskParameters.getDirectoryScope(), VST3));
+                collectedPluginFiles.addAll(pluginCollector.collect(scope, VST3));
             }
             if (pluginScanTaskParameters.isFindVst2()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(pluginScanTaskParameters.getDirectoryScope(), VST2));
+                collectedPluginFiles.addAll(pluginCollector.collect(scope, VST2));
             }
             if (pluginScanTaskParameters.isFindAu()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(pluginScanTaskParameters.getDirectoryScope(), AU));
+                collectedPluginFiles.addAll(pluginCollector.collect(scope, AU));
             }
 
-            collectedSymlinks.addAll(symlinkCollector.collect(pluginScanTaskParameters.getDirectoryScope()));
+            collectedSymlinks.addAll(symlinkCollector.collect(scope));
+
+            // Try to restore the original scan directory when a directory scope is used
+            // https://github.com/DropSnorz/OwlPlug/issues/424
+            final var scanPath = getScanPathFromDirectoryScope(pluginScanTaskParameters);
+            if (scanPath != null) {
+                final var scanFile = new File(scanPath);
+                collectedPluginFiles.forEach(f -> f.setScanDirectory(scanFile));
+            }
 
         } else {
-            // Plugins are retrieved from regulars directories
-            final var vst2Directory = pluginScanTaskParameters.getVst2Directory();
-            final var vst3Directory = pluginScanTaskParameters.getVst3Directory();
-            final var auDirectory = pluginScanTaskParameters.getAuDirectory();
-            final var lv2Directory = pluginScanTaskParameters.getLv2Directory();
-
+            // Plugins are retrieved from regular directories
             if (pluginScanTaskParameters.isFindLv2()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(lv2Directory, LV2));
-                collectedSymlinks.addAll(symlinkCollector.collect(lv2Directory));
-                pluginScanTaskParameters.getLv2ExtraDirectories().forEach(directory -> {
-                    collectedPluginFiles.addAll(pluginCollector.collect(directory, LV2));
-                    collectedSymlinks.addAll(symlinkCollector.collect(directory));
-                });
+                collectByDirectory(pluginScanTaskParameters.getLv2Directory(), LV2,
+                        pluginScanTaskParameters.getLv2ExtraDirectories(),
+                        collectedPluginFiles, pluginCollector, collectedSymlinks, symlinkCollector);
             }
-
             if (pluginScanTaskParameters.isFindVst3()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(vst3Directory, VST3));
-                collectedSymlinks.addAll(symlinkCollector.collect(vst3Directory));
-                pluginScanTaskParameters.getVst3ExtraDirectories().forEach(directory -> {
-                    collectedPluginFiles.addAll(pluginCollector.collect(directory, VST3));
-                    collectedSymlinks.addAll(symlinkCollector.collect(directory));
-                });
+                collectByDirectory(pluginScanTaskParameters.getVst3Directory(), VST3,
+                        pluginScanTaskParameters.getVst3ExtraDirectories(),
+                        collectedPluginFiles, pluginCollector, collectedSymlinks, symlinkCollector);
             }
-
             if (pluginScanTaskParameters.isFindVst2()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(vst2Directory, VST2));
-                collectedSymlinks.addAll(symlinkCollector.collect(vst2Directory));
-                pluginScanTaskParameters.getVst2ExtraDirectories().forEach(directory -> {
-                    collectedPluginFiles.addAll(pluginCollector.collect(directory, VST2));
-                    collectedSymlinks.addAll(symlinkCollector.collect(directory));
-                });
+                collectByDirectory(pluginScanTaskParameters.getVst2Directory(), VST2,
+                        pluginScanTaskParameters.getVst2ExtraDirectories(),
+                        collectedPluginFiles, pluginCollector, collectedSymlinks, symlinkCollector);
             }
-
             if (pluginScanTaskParameters.isFindAu()) {
-                collectedPluginFiles.addAll(pluginCollector.collect(auDirectory, AU));
-                collectedSymlinks.addAll(symlinkCollector.collect(auDirectory));
-                pluginScanTaskParameters.getAuExtraDirectories().forEach(directory -> {
-                    collectedPluginFiles.addAll(pluginCollector.collect(directory, AU));
-                    collectedSymlinks.addAll(symlinkCollector.collect(directory));
-                });
+                collectByDirectory(pluginScanTaskParameters.getAuDirectory(), AU,
+                        pluginScanTaskParameters.getAuExtraDirectories(),
+                        collectedPluginFiles, pluginCollector, collectedSymlinks, symlinkCollector);
             }
         }
     }
+
+    private static void collectByDirectory(final String directory, final PluginFormat format, final List<String> extraDirectories,
+                                           final Set<PluginFile> collectedPluginFiles, final PluginFileCollector pluginCollector,
+                                           final Collection<Symlink> collectedSymlinks, final SymlinkCollector symlinkCollector) {
+        collectedPluginFiles.addAll(pluginCollector.collect(directory, format));
+        collectedSymlinks.addAll(symlinkCollector.collect(directory));
+        extraDirectories.forEach(dir -> {
+            collectedPluginFiles.addAll(pluginCollector.collect(dir, format));
+            collectedSymlinks.addAll(symlinkCollector.collect(dir));
+        });
+    }
+
+    /**
+     * Compute the original scan directory based on the provided directory scope.
+     * See related <a href="https://github.com/DropSnorz/OwlPlug/issues/424">issue</a>
+     *
+     * @param pluginScanTaskParameters the directory scope
+     * @return path to the potential scan directory
+     */
+    private static String getScanPathFromDirectoryScope(final PluginScanTaskParameters pluginScanTaskParameters) {
+        return getAllPluginScanPath(pluginScanTaskParameters)
+                .stream()
+                .sorted()
+                .filter(pluginScanTaskParameters.getDirectoryScope()::startsWith)
+                .findFirst().orElse(null);
+    }
+
+    private static Set<String> getAllPluginScanPath(final PluginScanTaskParameters pluginScanTaskParameters) {
+        Set<String> paths = new HashSet<>();
+
+        paths.add(pluginScanTaskParameters.getVst2Directory());
+        paths.add(pluginScanTaskParameters.getVst3Directory());
+        paths.add(pluginScanTaskParameters.getAuDirectory());
+        paths.add(pluginScanTaskParameters.getLv2Directory());
+
+        paths.addAll(pluginScanTaskParameters.getVst2ExtraDirectories());
+        paths.addAll(pluginScanTaskParameters.getVst3ExtraDirectories());
+        paths.addAll(pluginScanTaskParameters.getAuExtraDirectories());
+        paths.addAll(pluginScanTaskParameters.getLv2ExtraDirectories());
+
+        // Clean null and blank paths if some are provided
+        paths.removeIf(p -> p == null || p.isBlank());
+
+        return paths;
+    }
+
 }

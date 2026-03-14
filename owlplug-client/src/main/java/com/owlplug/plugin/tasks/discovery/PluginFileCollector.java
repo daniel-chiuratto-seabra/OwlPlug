@@ -48,7 +48,7 @@ public class PluginFileCollector {
      * Collects plugins files on the current environment. Plugins are collected from the directoryPath and
      * all nested subfolders.
      *
-     * @param directoryPath - path where plugin are retrieved
+     * @param directoryPath - path where a plugin is retrieved
      * @param pluginFormat  - format to retrieve
      * @return a list of {@link PluginFile}
      */
@@ -69,7 +69,7 @@ public class PluginFileCollector {
             for (File file : filteredFiles) {
                 /*
                  *  Lookup for nested plugins in bundles and prevent them from being referenced multiple times.
-                 *  For example a VST3 bundle file can contain a .vst3 file for windows, but we
+                 *  For example, a VST3 bundle file can contain a .vst3 file for windows, but we
                  *  don't want it to be referenced as it's an internal package managed by the host.
                  *  Maybe this should be refactored to recursively explore directories and directly prevent exploration of
                  *  bundles subdirectories.
@@ -78,6 +78,8 @@ public class PluginFileCollector {
                 for (PluginFile previouslyCollectedFile : collectedFiles) {
                     if (file.getAbsolutePath().contains(previouslyCollectedFile.getPluginFile().getAbsolutePath())) {
                         nestedPluginDetected = true;
+                        // Early loop exit upon nested plugin detection
+                        break;
                     }
                 }
 
@@ -86,11 +88,12 @@ public class PluginFileCollector {
                     if (pluginFile != null) {
                         pluginFile.setScanDirectory(dir);
                         collectedFiles.add(pluginFile);
+                        LOGGER.debug("Collected plugin file: {}", pluginFile.getPluginFile().getName());
                     }
                 }
             }
         } else {
-            LOGGER.error("Scan target is not a valid directory. 0 plugins have been collected from " + directoryPath);
+            LOGGER.error("Scan target is not a valid directory. 0 plugins have been collected from {}", directoryPath);
         }
 
         return collectedFiles;

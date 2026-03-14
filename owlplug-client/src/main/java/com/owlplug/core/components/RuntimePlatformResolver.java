@@ -41,12 +41,19 @@ public class RuntimePlatformResolver {
     private final RuntimePlatform currentPlatform;
 
     public RuntimePlatformResolver() {
-        final var winX86 = new RuntimePlatform("win-x32", WIN, "x32", new String[]{"win32"});
-        platforms.add(winX86);
+        final var winX32 = new RuntimePlatform("win-x32", OperatingSystem.WIN, "x32", new String[]{"win32"});
+        platforms.add(winX32);
 
         final var winX64 = new RuntimePlatform("win-x64", WIN, "x64", new String[]{"win64"});
         platforms.add(winX64);
-        winX64.getCompatiblePlatforms().add(winX86);
+        winX64.getCompatiblePlatforms().add(winX32);
+
+        final var winArm64 = new RuntimePlatform("win-arm64", OperatingSystem.WIN, "arm64");
+        platforms.add(winArm64);
+
+        final var winArm64ec = new RuntimePlatform("win-arm64ec", OperatingSystem.WIN, "arm64ec");
+        platforms.add(winArm64ec);
+        winArm64ec.getCompatiblePlatforms().add(winX64);
 
         final var macX64 = new RuntimePlatform("mac-x64", MAC, "x64");
         platforms.add(macX64);
@@ -102,6 +109,8 @@ public class RuntimePlatformResolver {
             return "arm64";
         } else if (arch.matches("^(arm|arm32)$")) {
             return "arm32";
+        } else if (arch.matches("^(arm64ec)$")) {
+            return "arm64ec";
         } else {
             return "unknown";
         }

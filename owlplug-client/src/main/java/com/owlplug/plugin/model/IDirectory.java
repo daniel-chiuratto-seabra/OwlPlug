@@ -18,7 +18,7 @@
  
 package com.owlplug.plugin.model;
 
-public interface Directory {
+public interface IDirectory {
 
   String getName();
   

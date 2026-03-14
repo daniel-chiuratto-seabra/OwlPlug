@@ -59,7 +59,7 @@ public class TelemetryService extends BaseService {
     @PostConstruct
     private void initialize() {
         mixpanel = new MixpanelAPI("https://api-eu.mixpanel.com/track", "https://api-eu.mixpanel.com/engage");
-        messageBuilder = new MessageBuilder(getApplicationDefaults().getEnvProperty("owlplug.telemetry.code"));
+        messageBuilder = new MessageBuilder(getApplicationDefaults().getTelemetryCode());
 
         userId = getApplicationPreferences().get(ApplicationDefaults.TELEMETRY_USER_ID_KEY, UUID.randomUUID().toString());
         getApplicationPreferences().put(ApplicationDefaults.TELEMETRY_USER_ID_KEY, userId);
@@ -106,11 +106,15 @@ public class TelemetryService extends BaseService {
         }
     }
 
-    private void sanitize(Map<String, String> params) {
+    void sanitize(Map<String, String> params) {
+        sanitize(params, MAX_PROPS_LENGTH);
+    }
+
+    void sanitize(Map<String, String> params, int maxLength) {
         for (Map.Entry<String, String> entry : params.entrySet()) {
             String value = entry.getValue();
-            if (value.length() > MAX_PROPS_LENGTH) {
-                value = value.substring(0, MAX_PROPS_LENGTH) + "…";
+            if (value.length() > maxLength) {
+                value = value.substring(0, maxLength) + "…";
             }
 
             // Redact absolute paths (Unix & Windows)

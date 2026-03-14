@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <properties>
-        <springboot.version>3.5.6</springboot.version>
+        <springboot.version>4.0.1</springboot.version>
         <logback.version>1.5.19</logback.version>
         <h2.version>2.4.240</h2.version>
         <commons-io.version>2.18.0</commons-io.version>
@@ -28,7 +28,7 @@
     <parent>
         <groupId>com.owlplug</groupId>
         <artifactId>owlplug</artifactId>
-        <version>1.30.1</version>
+        <version>1.32.0</version>
     </parent>
 
     <artifactId>owlplug-client</artifactId>
@@ -228,7 +228,6 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <!-- Override spring-boot managed version to fix https://github.com/DropSnorz/OwlPlug/issues/322 -->
             <scope>runtime</scope>
         </dependency>
         <dependency>

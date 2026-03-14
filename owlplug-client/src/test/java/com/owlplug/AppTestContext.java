@@ -19,6 +19,7 @@
 package com.owlplug;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.TestInstance;
 import org.mockito.stubbing.Answer;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -32,6 +33,7 @@ import static java.util.Objects.requireNonNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AppTestContext {
 
     @MockitoBean

@@ -93,10 +93,10 @@ public class CrashRecoveryDialogController extends AbstractDialogController {
         pluginNativeComboBox.getSelectionModel().select(pluginLoader);
 
         troubleshootingLink.setOnAction((e) -> openDefaultBrowser(
-            getApplicationDefaults().getEnvProperty("owlplug.github.wiki.url")
+            getApplicationDefaults().getWikiUrl()
         ));
         issuesLink.setOnAction((e) -> openDefaultBrowser(
-            getApplicationDefaults().getEnvProperty("owlplug.github.issues.url")
+            getApplicationDefaults().getIssuesUrl()
         ));
 
         closeButton.setOnAction(e -> {

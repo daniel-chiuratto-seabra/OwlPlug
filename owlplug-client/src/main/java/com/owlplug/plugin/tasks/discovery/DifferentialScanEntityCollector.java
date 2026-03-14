@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DifferentialScanEntityCollector extends ScopedScanEntityCollector {
 
-    private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
     private PluginFileDifferential pluginDifferential = new PluginFileDifferential();
     private SymlinkDifferential symlinkDifferential = new SymlinkDifferential();
 
@@ -51,8 +51,8 @@ public class DifferentialScanEntityCollector extends ScopedScanEntityCollector {
                 .map(Plugin::getPath)
                 .collect(Collectors.toList());
 
-        log.debug("Plugin differential, collected {} plugins", collected.size());
-        log.debug("Plugin differential, persisted {} plugins", persisted.size());
+        LOGGER.debug("Plugin differential, collected {} plugins", collected.size());
+        LOGGER.debug("Plugin differential, persisted {} plugins", persisted.size());
 
         PathDifferential diff = differential(collected, persisted);
 
@@ -64,8 +64,8 @@ public class DifferentialScanEntityCollector extends ScopedScanEntityCollector {
         }
         pluginDifferential.setRemoved(diff.getRemoved());
 
-        log.info("Plugin differential, added {} plugins", pluginDifferential.getAdded().size());
-        log.info("Plugin differential, removed {} plugins", pluginDifferential.getRemoved().size());
+        LOGGER.info("Plugin differential, added {} plugins", pluginDifferential.getAdded().size());
+        LOGGER.info("Plugin differential, removed {} plugins", pluginDifferential.getRemoved().size());
 
         return this;
 
@@ -81,8 +81,8 @@ public class DifferentialScanEntityCollector extends ScopedScanEntityCollector {
                 .map(Symlink::getPath)
                 .collect(Collectors.toList());
 
-        log.debug("Symlink differential, collected {} symlinks", collected.size());
-        log.debug("Symlink differential, persisted {} symlinks", persisted.size());
+        LOGGER.debug("Symlink differential, collected {} symlinks", collected.size());
+        LOGGER.debug("Symlink differential, persisted {} symlinks", persisted.size());
 
         PathDifferential diff = differential(collected, persisted);
 
@@ -94,8 +94,8 @@ public class DifferentialScanEntityCollector extends ScopedScanEntityCollector {
         }
         symlinkDifferential.setRemoved(diff.getRemoved());
 
-        log.info("Symlink differential, added {} symlinks", symlinkDifferential.getAdded().size());
-        log.info("Symlink differential, removed {} symlinks", symlinkDifferential.getRemoved().size());
+        LOGGER.info("Symlink differential, added {} symlinks", symlinkDifferential.getAdded().size());
+        LOGGER.info("Symlink differential, removed {} symlinks", symlinkDifferential.getRemoved().size());
 
         return this;
     }

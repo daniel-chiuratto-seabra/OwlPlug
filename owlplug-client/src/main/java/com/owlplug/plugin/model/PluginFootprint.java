@@ -18,6 +18,7 @@
 
 package com.owlplug.plugin.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,51 +27,52 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(indexes = { @Index(name = "IDX_PLUGIN_FOOTPRINT_ID", columnList = "id"),
-    @Index(name = "IDX_PLUGIN_FOOTPRINT_PATH", columnList = "path") })
+@Table(indexes = {@Index(name = "IDX_PLUGIN_FOOTPRINT_ID", columnList = "id"),
+        @Index(name = "IDX_PLUGIN_FOOTPRINT_PATH", columnList = "path")})
 public class PluginFootprint {
-  
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  protected Long id;
-  protected String path;
-  protected boolean nativeDiscoveryEnabled = true;
 
-  protected String screenshotUrl;
-  
-  public PluginFootprint() {
-  }
-  
-  public PluginFootprint(String path) {
-    this.path = path;
-  }
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    protected Long id;
+    @Column(length = 512)
+    protected String path;
+    protected boolean nativeDiscoveryEnabled = true;
 
-  public String getPath() {
-    return path;
-  }
+    protected String screenshotUrl;
 
-  public void setPath(String path) {
-    this.path = path;
-  }
+    public PluginFootprint() {
+    }
 
-  public boolean isNativeDiscoveryEnabled() {
-    return nativeDiscoveryEnabled;
-  }
+    public PluginFootprint(String path) {
+        this.path = path;
+    }
 
-  public void setNativeDiscoveryEnabled(boolean nativeDiscoveryEnabled) {
-    this.nativeDiscoveryEnabled = nativeDiscoveryEnabled;
-  }
+    public String getPath() {
+        return path;
+    }
 
-  public String getScreenshotUrl() {
-    return screenshotUrl;
-  }
+    public void setPath(String path) {
+        this.path = path;
+    }
 
-  public void setScreenshotUrl(String screenshotUrl) {
-    this.screenshotUrl = screenshotUrl;
-  }
+    public boolean isNativeDiscoveryEnabled() {
+        return nativeDiscoveryEnabled;
+    }
 
-  public Long getId() {
-    return id;
-  }
+    public void setNativeDiscoveryEnabled(boolean nativeDiscoveryEnabled) {
+        this.nativeDiscoveryEnabled = nativeDiscoveryEnabled;
+    }
+
+    public String getScreenshotUrl() {
+        return screenshotUrl;
+    }
+
+    public void setScreenshotUrl(String screenshotUrl) {
+        this.screenshotUrl = screenshotUrl;
+    }
+
+    public Long getId() {
+        return id;
+    }
 
 }

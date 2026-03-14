@@ -39,11 +39,9 @@ import com.owlplug.core.controllers.dialogs.WelcomeDialogController;
 import com.owlplug.core.services.TelemetryService;
 import com.owlplug.explore.controllers.ExploreController;
 import com.owlplug.explore.services.ExploreService;
+import com.owlplug.core.services.AppUpdateService;
 import com.owlplug.plugin.services.PluginService;
-import com.owlplug.plugin.services.UpdateService;
 import jakarta.annotation.PreDestroy;
-import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -61,9 +59,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Controller;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 
 import static com.owlplug.core.utils.PlatformUtils.openDefaultBrowser;
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static javafx.application.Platform.runLater;
 
 @Controller
 public class MainController extends BaseController {
@@ -77,27 +79,36 @@ public class MainController extends BaseController {
     private final OptionsController optionsController;
     private final ExploreController exploreController;
     private final AuthenticationService authenticationService;
-    private final UpdateService updateService;
+    private final AppUpdateService appUpdateService;
     private final PluginService pluginService;
     private final ExploreService exploreService;
     private final ImageCache imageCache;
     private final TaskRunner taskRunner;
     private final ApplicationMonitor applicationMonitor;
 
-    @Getter @FXML private StackPane rootPane;
-    @Getter @FXML private Drawer leftDrawer;
-    @FXML private TabPane tabPaneHeader;
-    @FXML private TabPane tabPaneContent;
-    @FXML private ComboBox<AccountItem> accountComboBox;
-    @FXML private Pane updatePane;
-    @FXML private Button downloadUpdateButton;
+    @Getter
+    @FXML
+    private StackPane rootPane;
+    @Getter
+    @FXML
+    private Drawer leftDrawer;
+    @FXML
+    private TabPane tabPaneHeader;
+    @FXML
+    private TabPane tabPaneContent;
+    @FXML
+    private ComboBox<AccountItem> accountComboBox;
+    @FXML
+    private Pane updatePane;
+    @FXML
+    private Button downloadUpdateButton;
 
     public static int PLUGINS_TAB_INDEX = 1;
 
     public MainController(final LazyViewRegistry viewRegistry, final AccountController accountController,
                           final CrashRecoveryDialogController crashRecoveryDialogController, final WelcomeDialogController welcomeDialogController,
                           final OptionsController optionsController, @Lazy final ExploreController exploreController,
-                          final AuthenticationService authenticationService, final UpdateService updateService,
+                          final AuthenticationService authenticationService, final AppUpdateService appUpdateService,
                           final PluginService pluginService, final ExploreService exploreService, final ImageCache imageCache,
                           final TaskRunner taskRunner, final ApplicationMonitor applicationMonitor, final ApplicationDefaults applicationDefaults,
                           final ApplicationPreferences applicationPreferences, final TelemetryService telemetryService, final DialogManager dialogManager) {
@@ -110,7 +121,7 @@ public class MainController extends BaseController {
         this.optionsController = optionsController;
         this.exploreController = exploreController;
         this.authenticationService = authenticationService;
-        this.updateService = updateService;
+        this.appUpdateService = appUpdateService;
         this.pluginService = pluginService;
         this.exploreService = exploreService;
         this.imageCache = imageCache;
@@ -145,7 +156,7 @@ public class MainController extends BaseController {
             if (newValue instanceof AccountMenuItem) {
                 accountController.show();
                 // Delay comboBox selector change
-                Platform.runLater(() -> accountComboBox.setValue(oldValue));
+                runLater(() -> accountComboBox.setValue(oldValue));
             }
             if (newValue instanceof UserAccount userAccount) {
                 getApplicationPreferences().putLong(ApplicationDefaults.SELECTED_ACCOUNT_KEY, userAccount.getId());
@@ -156,26 +167,18 @@ public class MainController extends BaseController {
         accountComboBox.setButtonCell(new AccountCellFactory(imageCache, Pos.CENTER_RIGHT).call(null));
         accountComboBox.setCellFactory(new AccountCellFactory(authenticationService, imageCache, true));
 
-        refreshAccounts();
-
-        downloadUpdateButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getUpdateDownloadUrl()));
+        downloadUpdateButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getDownloadUrl()));
 
         updatePane.setVisible(false);
 
-        Task<Boolean> retrieveUpdateStatusTask = new Task<>() {
-            @Override
-            protected Boolean call() {
-                return updateService.isUpToDate();
-            }
-        };
-
-        retrieveUpdateStatusTask.setOnSucceeded(e -> {
-            if (!retrieveUpdateStatusTask.getValue()) {
-                updatePane.setVisible(true);
-            }
+        final var executor = Executors.newVirtualThreadPerTaskExecutor();
+        supplyAsync(appUpdateService::isUpToDate, executor).thenAccept(isUpToDate -> {
+            runLater(() -> {
+                if (!isUpToDate) {
+                    updatePane.setVisible(true);
+                }
+            });
         });
-
-        new Thread(retrieveUpdateStatusTask).start();
 
         tabPaneContent.getSelectionModel()
                 .selectedItemProperty()
@@ -192,6 +195,8 @@ public class MainController extends BaseController {
      * called once in the application lifecycle.
      */
     public void dispatchPostInitialize() {
+        refreshAccounts();
+
         if (!applicationMonitor.isPreviousExecutionSafelyTerminated()) {
             LOGGER.info("Previous execution not terminated safely, opening crash recovery dialog");
             crashRecoveryDialogController.show();
@@ -223,7 +228,7 @@ public class MainController extends BaseController {
      */
     public void refreshAccounts() {
 
-        ArrayList<UserAccount> accounts = new ArrayList<>();
+        final Collection<UserAccount> accounts = new ArrayList<>();
 
         for (UserAccount account : authenticationService.getAccounts()) {
             accounts.add(account);

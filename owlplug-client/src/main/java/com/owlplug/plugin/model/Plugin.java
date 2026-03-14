@@ -78,10 +78,12 @@ public class Plugin {
 
     @Getter
     @Setter
+    @Column(length = 512)
     protected String path;
 
     @Getter
     @Setter
+    @Column(length = 512)
     protected String scanDirectoryPath;
 
     @Getter
@@ -92,7 +94,6 @@ public class Plugin {
     @Setter
     protected String version;
 
-    // Suggestion: could be renamed to screenshotURI
     @Getter
     @Setter
     protected String screenshotUrl;

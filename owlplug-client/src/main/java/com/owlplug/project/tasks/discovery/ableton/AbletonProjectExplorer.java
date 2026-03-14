@@ -92,9 +92,9 @@ public class AbletonProjectExplorer implements ProjectExplorer {
             return dawProject;
 
         } catch (XPathExpressionException e) {
-            throw new ProjectExplorerException("Error while parsing project file " + file.getAbsolutePath(), e);
+            throw new ProjectExplorerException("Error while parsing project file: %s".formatted(file.getAbsolutePath()), e);
         } catch (IOException e) {
-            throw new ProjectExplorerException("Error while reading file " + file.getAbsolutePath(), e);
+            throw new ProjectExplorerException("Error while reading file: %s".formatted(file.getAbsolutePath()), e);
         }
 
     }
@@ -107,15 +107,19 @@ public class AbletonProjectExplorer implements ProjectExplorer {
              final var bgzi = new BufferedInputStream(compressorInputStream)) {
 
             final var documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            documentBuilderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            documentBuilderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            documentBuilderFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+
             final var documentBuilder = documentBuilderFactory.newDocumentBuilder();
             return documentBuilder.parse(bgzi);
 
         } catch (FileNotFoundException e) {
-            throw new ProjectExplorerException("Project file not found: " + file.getAbsolutePath(), e);
+            throw new ProjectExplorerException("Project file not found: %s".formatted(file.getAbsolutePath()), e);
         } catch (CompressorException e) {
-            throw new ProjectExplorerException("Error while uncompressing project file: " + file.getAbsolutePath(), e);
+            throw new ProjectExplorerException("Error while uncompressing project file: %s".formatted(file.getAbsolutePath()), e);
         } catch (IOException | ParserConfigurationException | SAXException e) {
-            throw new ProjectExplorerException("Unexpected error while reading project file: {}", e);
+            throw new ProjectExplorerException("Unexpected error while reading project file: %s".formatted(file.getAbsolutePath()), e);
         }
     }
 

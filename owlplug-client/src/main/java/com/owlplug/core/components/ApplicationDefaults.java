@@ -199,6 +199,8 @@ public class ApplicationDefaults {
     public final Image abletonLogoImage = loadImage("/icons/ableton-white-16.png");
     /** Reaper DAW logo. */
     public final Image reaperLogoImage = loadImage("/icons/reaper-white-16.png");
+    /** Studio One DAW logo. */
+    public final Image studioOneLogoImage = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/studioone-white-16.png")));
     /** Error/warning icon. */
     public final Image errorIconImage = loadImage("/icons/error-red-16.png");
     /** Link/hyperlink icon. */
@@ -328,6 +330,7 @@ public class ApplicationDefaults {
         return switch (application) {
             case ABLETON -> abletonLogoImage;
             case REAPER -> reaperLogoImage;
+            case STUDIO_ONE -> studioOneLogoImage;
         };
     }
 
@@ -386,23 +389,23 @@ public class ApplicationDefaults {
     }
 
     /**
-     * Retrieves the OwlPlug Hub base URL from configuration.
-     * The Hub is used for update checks and application metadata.
+     * Retrieves the latest URL configured in the application properties.
+     * This URL is typically used for accessing the most up-to-date application resources.
      *
-     * @return the OwlPlug Hub URL, or null if not configured
+     * @return the latest URL as a String, or null if not configured
      */
-    public String getOwlPlugHubUrl() {
-        return env.getProperty("owlplug.hub.url");
+    public String getLatestUrl() {
+        return env.getProperty("owlplug.github.latest-url");
     }
 
     /**
-     * Retrieves the URL for downloading application updates.
-     * Used by the update service to fetch new versions.
+     * Retrieves the download URL configured in the application properties.
+     * This URL is used for downloading application updates.
      *
-     * @return the update download URL, or null if not configured
+     * @return the download URL as a String, or null if not configured
      */
-    public String getUpdateDownloadUrl() {
-        return env.getProperty("owlplug.hub.updateDownloadUrl");
+    public String getDownloadUrl() {
+        return env.getProperty("owlplug.github.download-url");
     }
 
     /**
@@ -423,6 +426,34 @@ public class ApplicationDefaults {
      */
     public String getOpenAudioRegistryUrl() {
         return env.getProperty("openaudio.registry.url");
+    }
+
+    public String getTelemetryCode() {
+        return env.getProperty("owlplug.telemetry.code");
+    }
+
+    public String getDonateUrl() {
+        return env.getProperty("owlplug.donate-url");
+    }
+
+    public String getWorkspaceMinVersion() {
+        return env.getProperty("owlplug.workspace.min-version");
+    }
+
+    public String getIssuesUrl() {
+        return env.getProperty("owlplug.github.issues-url");
+    }
+
+    public String getRoadMapUrl() {
+        return env.getProperty("owlplug.roadmap-url");
+    }
+
+    public String getAboutUrl() {
+        return env.getProperty("owlplug.about-url");
+    }
+
+    public String getWikiUrl() {
+        return env.getProperty("owlplug.github.wiki-url");
     }
 
     /**

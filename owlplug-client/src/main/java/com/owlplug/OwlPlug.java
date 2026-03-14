@@ -37,6 +37,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 
 import static java.util.Objects.requireNonNull;
+import static javafx.application.Platform.runLater;
 
 /**
  * The main entry point for the OwlPlug JavaFX application.
@@ -93,24 +94,24 @@ public class OwlPlug extends Application {
             rootNode = loader.load();
 
             // Dispatch any post-initialization logic required by the MainController.
-            context.getBean(MainController.class).dispatchPostInitialize();
-        } catch (BeanCreationException e) {
+            runLater(context.getBean(MainController.class)::dispatchPostInitialize);
+        } catch (final BeanCreationException beanCreationException) {
             // Handle specific BeanCreationException, often indicating issues with Spring context.
-            if (e.getRootCause() instanceof HibernateException) {
+            if (beanCreationException.getRootCause() instanceof HibernateException) {
                 // Log and notify preloader if a HibernateException suggests OwlPlug is already running.
-                LOGGER.error("OwlPlug is maybe already running", e);
+                LOGGER.error("OwlPlug is maybe already running", beanCreationException);
                 notifyPreloader(new PreloaderProgressMessage("error", "OwlPlug is maybe already running"));
             } else {
                 // Log and notify preloader for other BeanCreationException errors.
-                LOGGER.error("Error during application context initialization", e);
+                LOGGER.error("Error during application context initialization", beanCreationException);
                 notifyPreloader(new PreloaderProgressMessage("error", "Error during application context initialization"));
             }
-            throw e; // Re-throw the exception to halt application startup.
-        } catch (Exception e) {
+            throw beanCreationException; // Re-throw the exception to halt the application startup.
+        } catch (final Exception exception) {
             // Catch any other general exceptions during initialization.
-            LOGGER.error("OwlPlug could not be started", e);
+            LOGGER.error("OwlPlug could not be started", exception);
             notifyPreloader(new PreloaderProgressMessage("error", "OwlPlug could not be started"));
-            throw e; // Re-throw the exception.
+            throw exception; // Re-throw the exception.
         }
     }
 
@@ -130,7 +131,7 @@ public class OwlPlug extends Application {
         final var width = 1050d;
         final var height = 800d;
 
-        // Create a new Scene with the pre-loaded rootNode and specified dimensions.
+        // Create a new Scene with the preloaded rootNode and specified dimensions.
         final var scene = new Scene(rootNode, width, height);
         // Initialize JMetro for modern UI styling with a dark theme.
         final var metroTheme = new JMetro(Style.DARK);

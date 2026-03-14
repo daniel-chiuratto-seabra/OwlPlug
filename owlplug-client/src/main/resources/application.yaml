@@ -2,21 +2,15 @@
 owlplug:
   version: @project.version@
   workspace:
-    min-version: 1.29.0
-  hub:
-    url: https://hub.owlplug.com
-    updateDownloadUrl: https://github.com/DropSnorz/OwlPlug/releases
+    min-version: 1.32.0
   github:
-    issues:
-      url: https://github.com/DropSnorz/OwlPlug/issues
-    wiki:
-      url: https://github.com/DropSnorz/OwlPlug/wiki
-  roadmap:
-    url: https://owlplug.com/roadmap
-  about:
-    url: https://owlplug.com/about
-  donate:
-    url: https://www.paypal.com/donate?hosted_button_id=7MJGDTQXAPJ22
+    latest-url: https://api.github.com/repos/Dropsnorz/OwlPlug/releases/latest
+    download-url: https://github.com/DropSnorz/OwlPlug/releases
+    issues-url: https://github.com/DropSnorz/OwlPlug/issues
+    wiki-url: https://github.com/DropSnorz/OwlPlug/wiki
+  roadmap-url: https://owlplug.com/roadmap
+  about-url: https://owlplug.com/about
+  donate-url: https://www.paypal.com/donate?hosted_button_id=7MJGDTQXAPJ22
   telemetry:
     code: 1ef50688f6f98ec583f1aa2170874320
   registry:
@@ -30,6 +24,9 @@ openaudio:
 javafx:
   # This property defines the preloader to be used. Following you have the default one. If this property
   # is not present, then the hardcoded default one takes place
+  #
+  # Ignore the warning. Spring cannot identify its usage because it is manually loaded on PropertyUtils since its
+  # value is required before starting Spring's context, therefore no way of injecting it through Spring way
   pre-loader: com.owlplug.OwlPlugPreloader
 
 # Spring circular references should be avoided
@@ -41,7 +38,6 @@ spring:
     # WebServer
     # Disable webserver initialization on startup
     web-application-type: none
-    web-environment: false
 
   # H2
   h2:

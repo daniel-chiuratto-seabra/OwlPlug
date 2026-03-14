@@ -20,8 +20,10 @@ package com.owlplug.plugin.repositories;
 
 import com.owlplug.plugin.model.FileStat;
 import jakarta.transaction.Transactional;
+
 import java.util.List;
 import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,13 +31,13 @@ import org.springframework.data.repository.query.Param;
 
 public interface FileStatRepository extends JpaRepository<FileStat, Long> {
 
-  Optional<FileStat> findByPath(String path);
+    Optional<FileStat> findByPath(String path);
 
-  List<FileStat> findByParentPathOrderByLengthDesc(String parentPath);
+    List<FileStat> findByParentPathOrderByLengthDesc(String parentPath);
 
-  @Transactional
-  @Modifying(clearAutomatically=true, flushAutomatically=true)
-  @Query("delete from FileStat f where f.path=:path")
-  int deleteByPath(@Param("path") String path);
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from FileStat f where f.path=:path")
+    int deleteByPath(@Param("path") String path);
 
 }

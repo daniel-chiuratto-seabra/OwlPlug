@@ -24,7 +24,9 @@ import lombok.Getter;
 public enum DawApplication {
 
     ABLETON("Ableton"),
-    REAPER("Reaper");
+    REAPER("Reaper"),
+    STUDIO_ONE("Studio One");
+
     private final String name;
 
     DawApplication(final String name) {

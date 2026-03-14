@@ -24,7 +24,7 @@ import com.owlplug.core.components.DialogManager;
 import com.owlplug.core.controllers.BaseController;
 import com.owlplug.core.services.TelemetryService;
 import com.owlplug.core.ui.FilterableTreeItem;
-import com.owlplug.plugin.model.Directory;
+import com.owlplug.plugin.model.IDirectory;
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.PluginDirectory;
 import com.owlplug.plugin.model.Symlink;
@@ -305,13 +305,13 @@ public class PluginTreeViewController extends BaseController {
 
                 // If not, we are exploring a directory
             } else {
-                Directory directory;
+                IDirectory directory;
                 // If the child node contains only one directory, we can merge it with the child node
                 if (child.size() == 1 && ((FileTree) child.values().toArray()[0]).getNodeValue() instanceof PluginDirectory
                         && !(node.getValue() instanceof Symlink)
                         && !(child.getNodeValue() instanceof Symlink)) {
 
-                    directory = (Directory) child.getNodeValue();
+                    directory = (IDirectory) child.getNodeValue();
                     mergedParentName = mergedParentName + directory.getName() + "/";
 
                     buildDirectoryTree(child, node, mergedParentName);
@@ -320,7 +320,7 @@ public class PluginTreeViewController extends BaseController {
 
                     // In case our child cannot be merged (contains not only one subdirectory)
                 } else {
-                    directory = (Directory) child.getNodeValue();
+                    directory = (IDirectory) child.getNodeValue();
                     directory.setDisplayName(mergedParentName + directory.getName());
 
                     // We don't want to merge next directories in the current iteration

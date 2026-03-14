@@ -260,8 +260,8 @@ public class InstallStepDialogController extends AbstractDialogController {
      * Verify final predicates for bundle installation:
      * - Installation directory must be a valid target file, otherwise
      * the user can choose another directory.
-     * - Verify that folder do not already exits, otherwise ask the user
-     * for permission to overwrite existing file in this folder.
+     * - Verify that folder does not already exit, otherwise ask the user
+     * for permission to overwrite an existing file in this folder.
      *
      * @return true if installation predicates are met.
      */

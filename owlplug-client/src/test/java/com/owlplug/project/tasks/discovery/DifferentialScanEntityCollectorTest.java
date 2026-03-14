@@ -1,4 +1,4 @@
-package com.owlplug.project.taks.discovery;
+package com.owlplug.project.tasks.discovery;
 
 import com.owlplug.plugin.model.Plugin;
 import com.owlplug.plugin.model.Symlink;
