@@ -22,14 +22,13 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.DataStoreFactory;
 import com.google.api.services.oauth2.Oauth2;
-import com.google.api.services.oauth2.model.Userinfoplus;
+import com.google.api.services.oauth2.model.Userinfo;
 import com.owlplug.auth.JPADataStoreFactory;
 import com.owlplug.auth.components.OwlPlugCredentials;
 import com.owlplug.auth.events.AccountChangedEvent;
@@ -70,7 +69,7 @@ public class AuthenticationService extends BaseService {
     /**
      * The JSON factory used for parsing and generating JSON content in Google API interactions.
      */
-    private static final JsonFactory JSON_FACTORY = new JacksonFactory();
+    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     /**
      * Component providing OwlPlug-specific credentials for Google API access.
@@ -98,12 +97,12 @@ public class AuthenticationService extends BaseService {
     /**
      * Constructs an {@code AuthenticationService} with necessary dependencies.
      *
-     * @param applicationDefaults Provides default application settings.
-     * @param applicationPreferences Manages application-specific user preferences.
-     * @param owlPlugCredentials Provides OwlPlug's Google API client ID and secret.
+     * @param applicationDefaults        Provides default application settings.
+     * @param applicationPreferences     Manages application-specific user preferences.
+     * @param owlPlugCredentials         Provides OwlPlug's Google API client ID and secret.
      * @param googleCredentialRepository Repository for Google API credentials.
-     * @param userAccountRepository Repository for user account data.
-     * @param applicationEventPublisher Publisher for application-wide events.
+     * @param userAccountRepository      Repository for user account data.
+     * @param applicationEventPublisher  Publisher for application-wide events.
      */
     public AuthenticationService(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences,
                                  final OwlPlugCredentials owlPlugCredentials, final GoogleCredentialRepository googleCredentialRepository,
@@ -131,11 +130,11 @@ public class AuthenticationService extends BaseService {
      *                                 problems with the authorization process.
      */
     public void createAccountAndAuth() throws AuthenticationException {
-        // Retrieve Google API client ID and secret from OwlPlug's credentials.
-        String clientId = owlPlugCredentials.getGoogleAppId();
-        String clientSecret = owlPlugCredentials.getGoogleSecret();
+        // Retrieve Google AI client ID and secret from OwlPlug's credentials.
+        final var clientId = owlPlugCredentials.getGoogleAppId();
+        final var clientSecret = owlPlugCredentials.getGoogleSecret();
         // Define the required OAuth scopes for user profile information.
-        ArrayList<String> scopes = new ArrayList<>();
+        final var scopes = new ArrayList<String>();
         scopes.add("https://www.googleapis.com/auth/userinfo.profile");
 
         try {
@@ -148,7 +147,7 @@ public class AuthenticationService extends BaseService {
                     clientSecret, scopes)
                     .setDataStoreFactory(dataStore) // Use the JPA data store for credentials.
                     .setAccessType("offline") // Request offline access for refresh tokens.
-                    .setApprovalPrompt("force") // Force approval prompt to ensure refresh token is granted.
+                    .setApprovalPrompt("force") // Force approval prompt to ensure a refresh token is granted.
                     .build();
 
             // Create a temporary UserAccount to hold the key during the authorization process.
@@ -158,15 +157,15 @@ public class AuthenticationService extends BaseService {
             // Initialize the local server receiver for the authorization code.
             receiver = new LocalServerReceiver();
 
-            // Authorize the application and obtain user credentials.
+            // Authorize the application and get user credentials.
             AuthorizationCodeInstalledApp authCodeAccess = new AuthorizationCodeInstalledApp(flow, receiver);
             Credential credential = authCodeAccess.authorize(userAccount.getKey());
 
             // Build an Oauth2 service client to fetch user information.
-            Oauth2 oauth2 = new Oauth2.Builder(new NetHttpTransport(), new JacksonFactory(), credential)
+            Oauth2 oauth2 = new Oauth2.Builder(new NetHttpTransport(), JSON_FACTORY, credential)
                     .setApplicationName("OwlPlug").build();
             // Execute the request to get detailed user profile information.
-            Userinfoplus userinfo = oauth2.userinfo().get().execute();
+            Userinfo userinfo = oauth2.userinfo().get().execute();
 
             // Update the UserAccount with information retrieved from the user's profile.
             userAccount.setName(userinfo.getName());
@@ -232,37 +231,11 @@ public class AuthenticationService extends BaseService {
      *
      * @param id The unique ID of the user account to retrieve.
      * @return An {@link Optional} containing the {@link UserAccount} if found,
-     *         or an empty {@link Optional} if no account matches the given ID.
+     * or an empty {@link Optional} if no account matches the given ID.
      */
     public Optional<UserAccount> getUserAccountById(Long id) {
         // Delegate the retrieval of a user account by its ID to the user account repository.
         return userAccountRepository.findById(id);
-    }
-
-    /**
-     * Retrieves and constructs a Google API {@link com.google.api.client.googleapis.auth.oauth2.GoogleCredential}
-     * object based on a stored {@link GoogleCredential} entity identified by its unique key.
-     * This method is used to re-create a functional Google credential for making API calls,
-     * utilizing the stored refresh token and application client secrets.
-     *
-     * @param key The unique key of the stored Google credential.
-     * @return A fully constructed Google API {@link com.google.api.client.googleapis.auth.oauth2.GoogleCredential} instance.
-     */
-    public com.google.api.client.googleapis.auth.oauth2.GoogleCredential getGoogleCredential(String key) {
-        // Retrieve Google API client ID and secret from OwlPlug's credentials.
-        String clientId = owlPlugCredentials.getGoogleAppId();
-        String clientSecret = owlPlugCredentials.getGoogleSecret();
-
-        // Find the stored GoogleCredential entity by its unique key.
-        com.owlplug.auth.model.GoogleCredential gc = googleCredentialRepository.findByKey(key);
-
-        // Build a new Google API Credential using the stored refresh token and client secrets.
-        return new com.google.api.client.googleapis.auth.oauth2.GoogleCredential.Builder()
-                .setTransport(new NetHttpTransport()) // Set the HTTP transport.
-                .setJsonFactory(new JacksonFactory()) // Set the JSON factory.
-                .setClientSecrets(clientId, clientSecret) // Set the application's client ID and secret.
-                .build() // Build the credential.
-                .setRefreshToken(gc.getRefreshToken()); // Set the refresh token from the stored credential.
     }
 
     /**
@@ -274,7 +247,7 @@ public class AuthenticationService extends BaseService {
     public void stopAuthReceiver() {
         try {
             // Delete any user accounts that were created but not fully set up
-            // during a cancelled authentication attempt.
+            // during a canceled authentication attempt.
             userAccountRepository.deleteInvalidAccounts();
             // If the local server receiver was initialized, stop it.
             if (receiver != null) {

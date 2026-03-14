@@ -42,6 +42,7 @@ import com.owlplug.explore.services.ExploreService;
 import com.owlplug.core.services.AppUpdateService;
 import com.owlplug.plugin.services.PluginService;
 import jakarta.annotation.PreDestroy;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -141,7 +142,7 @@ public class MainController extends BaseController {
         viewRegistry.preload();
 
         tabPaneHeader.getStyleClass().add(JMetroStyleClass.UNDERLINE_TAB_PANE);
-        tabPaneHeader.getSelectionModel().selectedIndexProperty().addListener((options, oldValue, newValue) -> {
+        tabPaneHeader.getSelectionModel().selectedIndexProperty().addListener((_, _, newValue) -> {
             tabPaneContent.getSelectionModel().select(newValue.intValue());
             leftDrawer.close();
 
@@ -152,7 +153,7 @@ public class MainController extends BaseController {
             }
         });
 
-        accountComboBox.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
+        accountComboBox.getSelectionModel().selectedItemProperty().addListener((_, oldValue, newValue) -> {
             if (newValue instanceof AccountMenuItem) {
                 accountController.show();
                 // Delay comboBox selector change
@@ -167,18 +168,16 @@ public class MainController extends BaseController {
         accountComboBox.setButtonCell(new AccountCellFactory(imageCache, Pos.CENTER_RIGHT).call(null));
         accountComboBox.setCellFactory(new AccountCellFactory(authenticationService, imageCache, true));
 
-        downloadUpdateButton.setOnAction(e -> openDefaultBrowser(getApplicationDefaults().getDownloadUrl()));
+        downloadUpdateButton.setOnAction(_ -> openDefaultBrowser(getApplicationDefaults().getDownloadUrl()));
 
         updatePane.setVisible(false);
 
         final var executor = Executors.newVirtualThreadPerTaskExecutor();
-        supplyAsync(appUpdateService::isUpToDate, executor).thenAccept(isUpToDate -> {
-            runLater(() -> {
-                if (!isUpToDate) {
-                    updatePane.setVisible(true);
-                }
-            });
-        });
+        supplyAsync(appUpdateService::isUpToDate, executor).thenAccept(isUpToDate -> runLater(() -> {
+            if (!isUpToDate) {
+                updatePane.setVisible(true);
+            }
+        }));
 
         tabPaneContent.getSelectionModel()
                 .selectedItemProperty()
@@ -187,7 +186,7 @@ public class MainController extends BaseController {
 
     @EventListener(AccountChangedEvent.class)
     public void onAccountChanged() {
-        refreshAccounts();
+        Platform.runLater(this::refreshAccounts);
     }
 
     /**

@@ -73,7 +73,7 @@ public class PluginTreeViewController extends BaseController {
         treePluginNode = new FilterableTreeItem<>("(all)");
         treeFileRootNode = new FilterableTreeItem<>("(all)");
 
-        pluginTreeView.setCellFactory(p -> new PluginTreeCell(getApplicationDefaults(), pluginService));
+        pluginTreeView.setCellFactory(_ -> new PluginTreeCell(getApplicationDefaults(), pluginService));
 
         pluginTreeView.setRoot(treePluginNode);
 
@@ -212,44 +212,44 @@ public class PluginTreeViewController extends BaseController {
 
         pluginIterable.forEach(plug -> {
             PluginTreeViewController.FileTree node = pluginTree;
-            String[] subDirs = plug.getPath().split("/");
-            String currentPath = "";
+            final var subDirs = plug.getPath().split("/");
+            var currentPath = "";
             for (int i = 0; i < subDirs.length; i++) {
                 currentPath = currentPath + subDirs[i] + "/";
-                String segment = subDirs[i];
-                PluginTreeViewController.FileTree ft = new PluginTreeViewController.FileTree();
+                final var segment = subDirs[i];
+                final var fileTree = new PluginTreeViewController.FileTree();
 
                 if (node.get(segment) == null) {
                     // Node is a plugin (End of branch)
                     if (i == subDirs.length - 1) {
-                        ft.setNodeValue(plug);
+                        fileTree.setNodeValue(plug);
 
                         // Node is a directory
                     } else {
                         // TODO Should be optimized for large plugin set
-                        List<Plugin> localPluginList = new ArrayList<>();
-                        for (Plugin p : pluginIterable) {
-                            if (p.getPath().startsWith(currentPath)) {
-                                localPluginList.add(p);
+                        final var localPluginList = new ArrayList<Plugin>();
+                        for (final var plugin : pluginIterable) {
+                            if (plugin.getPath().startsWith(currentPath)) {
+                                localPluginList.add(plugin);
                             }
                         }
 
                         // Retrieve Symlink if exist
                         // TODO: This can be refactored to prevent trailing slash removal
-                        Symlink symlink = symlinkRepository.findByPath(currentPath.substring(0, currentPath.length() - 1));
+                        final var symlink = symlinkRepository.findByPath(currentPath.substring(0, currentPath.length() - 1));
                         if (symlink != null) {
                             symlink.setPluginList(localPluginList);
-                            ft.setNodeValue(symlink);
+                            fileTree.setNodeValue(symlink);
                         } else {
-                            PluginDirectory directory = new PluginDirectory();
+                            final var directory = new PluginDirectory();
                             directory.setName(segment);
                             directory.setPath(currentPath);
                             directory.setPluginList(localPluginList);
-                            ft.setNodeValue(directory);
+                            fileTree.setNodeValue(directory);
                         }
 
                     }
-                    node.put(segment, ft);
+                    node.put(segment, fileTree);
                 }
                 node = node.get(segment);
             }

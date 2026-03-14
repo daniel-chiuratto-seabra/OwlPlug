@@ -32,7 +32,7 @@ import org.hibernate.HibernateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.boot.SpringApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -80,7 +80,9 @@ public class OwlPlug extends Application {
         try {
             // Start the Spring Boot application context using the Bootstrap class.
             // This initializes all Spring-managed beans and configurations.
-            context = SpringApplication.run(Bootstrap.class, getParameters().getRaw().toArray(new String[0]));
+            context = new SpringApplicationBuilder(Bootstrap.class)
+                    .headless(false)
+                    .run(getParameters().getRaw().toArray(new String[0]));
 
             // Autowire this OwlPlug instance with dependencies from the Spring context.
             // This allows Spring to inject any required beans into this class.

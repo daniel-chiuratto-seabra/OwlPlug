@@ -98,11 +98,11 @@ public class DirectoryInfoController extends BaseController implements Initializ
     @Override
     public void initialize(final URL location, final ResourceBundle resources) {
 
-        openDirectoryButton.setOnAction(e -> PlatformUtils.openFromDesktop(pluginDirectory.getPath()));
+        openDirectoryButton.setOnAction(_ -> PlatformUtils.openFromDesktop(pluginDirectory.getPath()));
 
         pluginDirectoryListView.setCellFactory(new PluginListCellFactory(this.getApplicationDefaults()));
 
-        deleteDirectoryButton.setOnAction(e -> {
+        deleteDirectoryButton.setOnAction(_ -> {
             Dialog dialog = this.getDialogManager().newDialog();
             DialogLayout layout = new DialogLayout();
 
@@ -112,13 +112,13 @@ public class DirectoryInfoController extends BaseController implements Initializ
 
             Button cancelButton = new Button("Cancel");
 
-            cancelButton.setOnAction(cancelEvent -> dialog.close());
+            cancelButton.setOnAction(_ -> dialog.close());
 
             Button removeButton = new Button("Remove");
-            removeButton.setOnAction(removeEvent -> {
+            removeButton.setOnAction(_ -> {
                 dialog.close();
                 taskFactory.create(new DirectoryRemoveTask(pluginDirectory))
-                        .setOnSucceeded(x -> taskFactory.createPluginScanTask(pluginDirectory.getPath()).schedule())
+                        .setOnSucceeded(_ -> taskFactory.createPluginScanTask(pluginDirectory.getPath()).schedule())
                         .schedule();
             });
             removeButton.getStyleClass().add("button-danger");
@@ -162,24 +162,24 @@ public class DirectoryInfoController extends BaseController implements Initializ
         pluginDirectoryListView.getItems().setAll(pluginDirectory.getPluginList());
         directoryMetricsTab.setText("0 KB");
 
-        File file = new File(pluginDirectory.getPath());
+        final var file = new File(pluginDirectory.getPath());
         deleteDirectoryButton.setDisable(!file.canWrite());
 
-        String path = pluginDirectory.getPath();
+        var path = pluginDirectory.getPath();
         if (path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
         }
 
-        Optional<FileStat> directoryStat = fileStatRepository.findByPath(path);
+        final var directoryStat = fileStatRepository.findByPath(path);
         directoryStat.ifPresent(fileStat -> directoryMetricsTab.setText(
                 FileUtils.humanReadableByteCount(fileStat.getLength(), true)));
 
         directoryPluginsTab.setText("Plugins (%d)".formatted(pluginDirectory.getPluginList().size()));
 
-        List<FileStat> fileStats = fileStatRepository.findByParentPathOrderByLengthDesc(path);
+        final var fileStats = fileStatRepository.findByParentPathOrderByLengthDesc(path);
         directoryFilesTab.setText("Files (" + fileStats.size() + ")");
 
-        ObservableList<FileStat> obsStats = FXCollections.observableArrayList();
+        final ObservableList<FileStat> obsStats = FXCollections.observableArrayList();
         obsStats.addAll(fileStats);
         directoryFilesTableView.setItems(obsStats);
 
@@ -189,7 +189,7 @@ public class DirectoryInfoController extends BaseController implements Initializ
     }
 
     private ObservableList<PieChart.Data> createStatChartBuckets(List<FileStat> fileStats) {
-        ObservableList<PieChart.Data> chartData = FXCollections.observableArrayList();
+        final ObservableList<PieChart.Data> chartData = FXCollections.observableArrayList();
         int i = 0;
         int maxBucket = 7;
         while (i < fileStats.size() && i < maxBucket) {

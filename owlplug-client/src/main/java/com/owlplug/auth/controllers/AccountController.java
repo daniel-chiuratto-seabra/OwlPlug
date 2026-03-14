@@ -136,7 +136,7 @@ public class AccountController extends AbstractDialogController implements Initi
     @Override
     public void initialize(final URL location, final ResourceBundle resources) {
         // Set action for the Google authentication button.
-        googleButton.setOnAction(e -> {
+        googleButton.setOnAction(_ -> {
             // Hide the button pane and show the progress indicator and a message.
             buttonPane.setVisible(false);
             authProgressIndicator.setVisible(true);
@@ -151,20 +151,20 @@ public class AccountController extends AbstractDialogController implements Initi
                     // Call the authentication service to start the Google OAuth flow.
                     authenticationService.createAccountAndAuth();
                     // Update progress to indicate completion.
-                    this.updateProgress(1, 1);
+                    updateProgress(1, 1);
                     return null;
                 }
             };
 
-            // Set handler for successful completion of the authentication task.
-            task.setOnSucceeded(event -> {
+            // Set a handler for successful completion of the authentication task.
+            task.setOnSucceeded(_ -> {
                 LOGGER.debug("Google auth task complete");
-                // Hide progress indicator and button pane, show close button.
+                // Hide the progress indicator and button pane, show the close button.
                 authProgressIndicator.setVisible(false);
                 buttonPane.setVisible(false);
                 cancelButton.setVisible(false);
                 closeButton.setVisible(true);
-                // Display success message.
+                // Display a success message.
                 messageLabel.setText("Your account has been successfully added");
                 messageLabel.setVisible(true);
                 // Reset cancel flag.
@@ -173,17 +173,17 @@ public class AccountController extends AbstractDialogController implements Initi
                 mainController.refreshAccounts();
             });
 
-            // Set handler for failed authentication task.
-            task.setOnFailed(event -> {
+            // Set a handler for a failed authentication task.
+            task.setOnFailed(_ -> {
                 LOGGER.debug("Google auth task failed");
-                // Hide progress indicator, show button pane, show close button.
+                // Hide the progress indicator, show the button pane, show the close button.
                 authProgressIndicator.setVisible(false);
                 buttonPane.setVisible(true);
                 cancelButton.setVisible(false);
                 closeButton.setVisible(true);
                 messageLabel.setVisible(false);
 
-                // If authentication was not cancelled by the user, display an error message.
+                // If the user did not cancel authentication, display an error message.
                 if (!cancelFlag) {
                     messageLabel.setText("En error occurred during authentication");
                     messageLabel.setVisible(true);
@@ -192,7 +192,7 @@ public class AccountController extends AbstractDialogController implements Initi
                 cancelFlag = false;
             });
 
-            // Show cancel button and hide close button before starting the task.
+            // Show the cancel button and hide the close button before starting the task.
             cancelButton.setVisible(true);
             closeButton.setVisible(false);
             // Start the authentication task in a new thread.
@@ -200,16 +200,16 @@ public class AccountController extends AbstractDialogController implements Initi
         });
 
         // Set action for the cancel button.
-        cancelButton.setOnAction(event -> {
-            // Set cancel flag and stop the authentication receiver.
+        cancelButton.setOnAction(_ -> {
+            // Set the cancel flag and stop the authentication receiver.
             cancelFlag = true;
             authenticationService.stopAuthReceiver();
         });
 
         // Set action for the close button to close the dialog.
-        closeButton.setOnAction(e -> close());
+        closeButton.setOnAction(_ -> close());
 
-        // Bind managed properties to visible properties to prevent invisible nodes from affecting layout.
+        // Bind managed properties to visible properties to prevent invisible nodes from affecting the layout.
         buttonPane.managedProperty().bind(buttonPane.visibleProperty());
         authProgressIndicator.managedProperty().bind(authProgressIndicator.visibleProperty());
         messageLabel.managedProperty().bind(messageLabel.visibleProperty());
