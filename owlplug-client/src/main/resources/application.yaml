@@ -59,6 +59,14 @@ spring:
         dialect: com.owlplug.OwlPlugH2Dialect
         auto_quote_keyword: true
 
+# The following setting tells Spring Boot Actuator not to instantiate any endpoint beans (including
+# configurationPropertiesReportEndpoint) unless you explicitly opt them in. Since OwlPlug doesn't
+# expose a web server (web-application-type: none), none of the Actuator endpoints serve any purpose,
+# and this is the correct configuration anyway.
+management:
+  endpoints:
+    enabled-by-default: false
+
 # Logger
 # Available levels are: TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF
 # logging.level.org.hibernate.SQL=DEBUG

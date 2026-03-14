@@ -359,6 +359,18 @@ public class ApplicationDefaultsTest {
         assertSame(applicationDefaults.reaperLogoImage, icon);
     }
 
+    /**
+     * Test that getDAWApplicationIcon returns the Studio One logo for Studio One.
+     * This icon is used in the project explorer to identify Studio One project files.
+     * Studio One was added in this update and requires its own icon entry.
+     */
+    @Test
+    void testGetDAWApplicationIcon_StudioOne() {
+        Image icon = applicationDefaults.getDAWApplicationIcon(DawApplication.STUDIO_ONE);
+        assertNotNull(icon, "Studio One icon should not be null");
+        assertSame(applicationDefaults.studioOneLogoImage, icon);
+    }
+
     // ========================================
     // Tests for environment property access
     // ========================================
@@ -375,25 +387,25 @@ public class ApplicationDefaultsTest {
     }
 
     /**
-     * Test that getOwlPlugHubUrl retrieves the Hub URL from environment properties.
-     * The Hub is used for checking updates and fetching application metadata.
+     * Test that getLatestUrl retrieves the GitHub latest release URL from environment properties.
+     * This URL points to the GitHub API endpoint used to check for the latest application release.
      */
     @Test
     void testGetLatestUrl() {
-        when(environment.getProperty("owlplug.hub.url")).thenReturn("https://hub.owlplug.com");
-        assertEquals("https://hub.owlplug.com", applicationDefaults.getLatestUrl());
-        verify(environment).getProperty("owlplug.hub.url");
+        when(environment.getProperty("owlplug.github.latest-url")).thenReturn("https://api.github.com/repos/DropSnorz/OwlPlug/releases/latest");
+        assertEquals("https://api.github.com/repos/DropSnorz/OwlPlug/releases/latest", applicationDefaults.getLatestUrl());
+        verify(environment).getProperty("owlplug.github.latest-url");
     }
 
     /**
-     * Test that getUpdateDownloadUrl retrieves the update download URL from environment properties.
-     * This URL is used by the update service to download new application versions.
+     * Test that getDownloadUrl retrieves the GitHub release download URL from environment properties.
+     * This URL is used by the update service to direct users to the download page.
      */
     @Test
     void testGetDownloadUrl() {
-        when(environment.getProperty("owlplug.hub.updateDownloadUrl")).thenReturn("https://updates.owlplug.com");
-        assertEquals("https://updates.owlplug.com", applicationDefaults.getDownloadUrl());
-        verify(environment).getProperty("owlplug.hub.updateDownloadUrl");
+        when(environment.getProperty("owlplug.github.download-url")).thenReturn("https://github.com/DropSnorz/OwlPlug/releases");
+        assertEquals("https://github.com/DropSnorz/OwlPlug/releases", applicationDefaults.getDownloadUrl());
+        verify(environment).getProperty("owlplug.github.download-url");
     }
 
     /**

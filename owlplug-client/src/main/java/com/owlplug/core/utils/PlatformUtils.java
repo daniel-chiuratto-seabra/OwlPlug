@@ -41,7 +41,11 @@ public class PlatformUtils {
 
     public static void openFromDesktop(final File file) {
         try {
-            Desktop.getDesktop().open(file);
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                Desktop.getDesktop().open(file);
+            } else {
+                LOGGER.warn("Desktop operations are not supported in this environment");
+            }
         } catch (IOException e) {
             LOGGER.error("Application for the given file fails to be launched", e);
         }

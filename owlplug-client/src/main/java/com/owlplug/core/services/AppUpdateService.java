@@ -31,11 +31,25 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Service responsible for checking whether a newer version of OwlPlug is available.
+ *
+ * <p>Queries the GitHub Releases API using the URL configured in
+ * {@link ApplicationDefaults#getLatestUrl()} and compares the remote {@code tag_name}
+ * against the running application version using semantic versioning
+ * ({@link com.vdurmont.semver4j.Semver}).
+ */
 @Service
 public class AppUpdateService extends BaseService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AppUpdateService.class);
 
+    /**
+     * Creates a new {@code AppUpdateService}.
+     *
+     * @param applicationDefaults     application-wide configuration and metadata
+     * @param applicationPreferences  user preference store
+     */
     public AppUpdateService(final ApplicationDefaults applicationDefaults, final ApplicationPreferences applicationPreferences) {
         super(applicationDefaults, applicationPreferences);
     }
@@ -57,6 +71,17 @@ public class AppUpdateService extends BaseService {
         return true;
     }
 
+    /**
+     * Fetches the latest release tag from the GitHub Releases API.
+     *
+     * <p>Sends a {@code GET} request to {@link ApplicationDefaults#getLatestUrl()} with the
+     * required {@code User-Agent} and {@code Accept} headers. The response JSON object is
+     * expected to contain a {@code "tag_name"} field whose value is the version string
+     * (e.g. {@code "1.30.1"}).
+     *
+     * @return the latest version tag, or {@code null} if the request fails or the field
+     *         is absent in the response
+     */
     private String getLastVersion() {
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getInterceptors().add(((request, body, execution) -> {

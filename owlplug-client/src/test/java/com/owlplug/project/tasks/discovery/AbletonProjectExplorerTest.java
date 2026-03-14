@@ -23,6 +23,7 @@ import com.owlplug.project.model.DawApplication;
 import com.owlplug.project.model.DawProject;
 import com.owlplug.project.tasks.discovery.ProjectExplorerException;
 import com.owlplug.project.tasks.discovery.ableton.AbletonProjectExplorer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -33,17 +34,27 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AbletonProjectExplorerTest {
 
+    private AbletonProjectExplorer explorer;
+
+    @BeforeEach
+    void setUp() {
+        explorer = new AbletonProjectExplorer();
+    }
+
     @Test
     public void ableton11Schema5ContainingVstAndVst3ValidProject() throws ProjectExplorerException {
-        final var abletonProjectExplorer = new AbletonProjectExplorer();
-
         final var file = new File(this.getClass().getClassLoader()
                 .getResource("projects/ableton/ableton11Schema5.als").getFile());
 
-        final var dawProject = abletonProjectExplorer.explore(file);
+        final var dawProject = explorer.explore(file);
         assertEquals("ableton11Schema5", dawProject.getName());
         assertEquals(DawApplication.ABLETON, dawProject.getApplication());
         assertEquals("Ableton Live 11.1", dawProject.getAppFullName());
@@ -60,5 +71,35 @@ public class AbletonProjectExplorerTest {
                         hasProperty("format", is(PluginFormat.VST3))
                 )
         ));
+    }
+
+    @Test
+    void canExploreFile_returnsTrue_forValidAlsFile() {
+        final var file = new File(getClass().getClassLoader()
+                .getResource("projects/ableton/ableton11Schema5.als").getFile());
+        assertTrue(explorer.canExploreFile(file));
+    }
+
+    @Test
+    void canExploreFile_returnsFalse_forNonAlsFile() {
+        final var file = mock(File.class);
+        when(file.isFile()).thenReturn(true);
+        when(file.getAbsolutePath()).thenReturn("/path/to/project.song");
+        assertFalse(explorer.canExploreFile(file));
+    }
+
+    @Test
+    void canExploreFile_returnsFalse_forDirectory() {
+        final var file = mock(File.class);
+        when(file.isFile()).thenReturn(false);
+        assertFalse(explorer.canExploreFile(file));
+    }
+
+    @Test
+    void explore_returnsNull_forNonAlsFile() throws ProjectExplorerException {
+        final var file = mock(File.class);
+        when(file.isFile()).thenReturn(true);
+        when(file.getAbsolutePath()).thenReturn("/path/to/project.song");
+        assertNull(explorer.explore(file));
     }
 }

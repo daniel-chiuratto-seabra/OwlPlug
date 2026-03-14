@@ -46,14 +46,37 @@ import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
 
+/**
+ * Explores Ableton Live project files ({@code .als}) to extract metadata and plugin usage.
+ *
+ * <p>Ableton Live project files are gzip-compressed XML files. This explorer decompresses
+ * and parses the XML to extract the project title, Live version, format schema, creation/
+ * modification timestamps, and the list of plugins used in the project.
+ */
 public class AbletonProjectExplorer implements ProjectExplorer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbletonProjectExplorer.class);
 
+    /**
+     * Returns {@code true} if this explorer can process the given file.
+     *
+     * <p>A file is considered explorable when it is a regular file (not a directory)
+     * with an {@code .als} extension.
+     *
+     * @param file the file to test
+     * @return {@code true} if the file should be explored; {@code false} otherwise
+     */
     public boolean canExploreFile(File file) {
         return file.isFile() && file.getAbsolutePath().endsWith(".als");
     }
 
+    /**
+     * Explores an Ableton Live project file and extracts its metadata and plugin list.
+     *
+     * @param file the {@code .als} file to explore
+     * @return the populated {@link DawProject}, or {@code null} if the file cannot be explored
+     * @throws ProjectExplorerException if a fatal parsing or I/O error occurs
+     */
     public DawProject explore(final File file) throws ProjectExplorerException {
 
         if (!canExploreFile(file)) {
@@ -99,6 +122,19 @@ public class AbletonProjectExplorer implements ProjectExplorer {
 
     }
 
+    /**
+     * Parses an Ableton Live project file into a DOM {@link Document}.
+     *
+     * <p>The {@code .als} file is a gzip-compressed XML stream. This method decompresses
+     * it using Apache Commons Compress and parses it with a XXE-hardened
+     * {@link javax.xml.parsers.DocumentBuilder} (DOCTYPE declarations and external
+     * entity resolution are both disabled).
+     *
+     * @param file the {@code .als} file to read
+     * @return the parsed DOM document
+     * @throws ProjectExplorerException if the file is not found, cannot be decompressed,
+     *                                  or cannot be parsed as XML
+     */
     private Document createDocument(final File file) throws ProjectExplorerException {
 
         try (final var inputStream = new FileInputStream(file);
